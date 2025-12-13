@@ -1,7 +1,5 @@
 'use strict'
 
-import { ISignerEvm } from './seed-signer-evm.js'
-
 import {
   DeviceActionStatus,
   DeviceManagementKitBuilder
@@ -13,68 +11,109 @@ import { verifyMessage, Signature, Transaction, getBytes } from 'ethers'
 
 const BIP_44_ETH_DERIVATION_PATH_PREFIX = "44'/60'"
 
+// Simple shared connection/state across derived Ledger signers within the same runtime.
+// We intentionally keep this minimal (no ref-count) and add proper lifecycle handling later.
+const SHARED = {
+  dmk: undefined,
+  sessionId: '',
+  account: undefined, // SignerEth
+  device: undefined
+}
+
+// Internal token to guard constructor usage
+const INTERNAL_TOKEN = Symbol('ledger-signer-evm-internal')
+
 /**
  * @implements {ISignerEvm}
  */
 export default class LedgerSignerEvm {
-  constructor (path, config = {}, opts = {}) {
+  /**
+   * Creates a fully initialized child signer for the given path.
+   * Ensures the DMK/session/signer are ready and resolves the address up-front.
+   *
+   * @param {string} path - Relative BIP-44 path suffix, e.g. "0'/0/0"
+   * @param {object} [config]
+   * @returns {Promise<LedgerSignerEvm>}
+   */
+  static async createChild (path, config = {}) {
+    if (!path) throw new Error('Path is required.')
+
+    // Reuse or create DMK
+    if (!SHARED.dmk) {
+      SHARED.dmk = new DeviceManagementKitBuilder().addTransport(webHidTransportFactory).build()
+    }
+
+    // Ensure connection/session
+    if (!SHARED.sessionId) {
+      try {
+        const device = await firstValueFrom(SHARED.dmk.startDiscovering({ }))
+        const sessionId = await SHARED.dmk.connect({
+          device,
+          sessionRefresherOptions: { isRefresherDisabled: false, pollingInterval: 3000 }
+        })
+        SHARED.sessionId = sessionId
+        SHARED.device = device
+      } catch (e) {
+        throw new Error(
+          typeof e?.message === 'string'
+            ? e.message
+            : 'Failed to connect to Ledger device. Ensure WebHID is allowed, device is unlocked, and Ethereum app is open.'
+        )
+      }
+    }
+
+    // Ensure hardware signer
+    if (!SHARED.account) {
+      SHARED.account = new SignerEthBuilder({
+        dmk: SHARED.dmk,
+        sessionId: SHARED.sessionId
+      }).build()
+    }
+
+    // Resolve address for this path
+    const fullPath = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${path}`
+    const { observable } = SHARED.account.getAddress(fullPath)
+    const address = await firstValueFrom(
+      observable.pipe(
+        filter((evt) => evt.status === DeviceActionStatus.Completed),
+        map((evt) => evt.output.address)
+      )
+    )
+
+    // Create instance and bind initialized state
+    const instance = new LedgerSignerEvm(path, config, INTERNAL_TOKEN)
+    instance._dmk = SHARED.dmk
+    instance._sessionId = SHARED.sessionId
+    instance._account = SHARED.account
+    instance._address = address
+    instance._isActive = true
+
+    return instance
+  }
+
+  constructor (path, config = {}, __token) {
     if (!path) {
       throw new Error('Path is required.')
     }
+    if (__token !== INTERNAL_TOKEN) {
+      throw new Error('Direct construction is not supported. Use LedgerSignerEvm.createChild(path, config).')
+    }
 
     this._config = config
+    this._dmk = SHARED.dmk
     this._account = undefined
     this._address = undefined
     this._sessionId = ''
     this._path = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${path}`
     this._isActive = false
-
-    /**
-     * Discover & connect a device
-     */
-
-    this._dmk =
-      opts.dmk ||
-      new DeviceManagementKitBuilder()
-        .addTransport(webHidTransportFactory)
-        .build()
-
-    this._dmk.startDiscovering({}).subscribe({
-      next: async (device) => {
-        this._sessionId = await this._dmk.connect({
-          device,
-          sessionRefresherOptions: { isRefresherDisabled: true }
-        })
-
-        // Create a hardware signer
-        this._account = new SignerEthBuilder({
-          dmk: this._dmk,
-          sessionId: this._sessionId
-        }).build()
-
-        // Get the extended pubkey
-        const { observable } = this._account.getAddress(this._path)
-        const address = await firstValueFrom(
-          observable.pipe(
-            filter((evt) => evt.status === DeviceActionStatus.Completed),
-            map((evt) => evt.output.address)
-          )
-        )
-
-        // Active
-        this._address = address
-        this._isActive = true
-      },
-      error: (e) => {
-        console.log(e)
-        throw new Error(e)
-      }
-    })
   }
 
   get isActive () {
     return this._isActive
   }
+
+  get isRoot () { return false }
+  get isPrivateKey () { return false }
 
   get index () {
     if (!this._path) return undefined
@@ -93,25 +132,32 @@ export default class LedgerSignerEvm {
     return this._address
   }
 
+  async getAddress () { return this._address }
+
   derive (relPath, cfg = {}) {
     const mergedCfg = {
       ...this._config,
       ...Object.fromEntries(
         Object.entries(cfg || {}).filter(([, v]) => v !== undefined)
-      ),
-      dmk: this._dmk
+      )
     }
 
-    const mergedOpts = {
-      ...this.opts,
-      dmk: this._dmk
-    }
-
-    return new LedgerSignerEvm(`${path}/${relPath}`, mergedCfg, mergedOpts)
+    // Build the child path relative to the current one, avoiding double-prefixing
+    const prefix = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/`
+    const currentSuffix = this._path.startsWith(prefix) ? this._path.slice(prefix.length) : this._path
+    const child = new LedgerSignerEvm(`${currentSuffix}/${relPath}`, mergedCfg, INTERNAL_TOKEN)
+    // Inherit shared runtime state
+    child._dmk = SHARED.dmk
+    child._sessionId = SHARED.sessionId
+    child._account = SHARED.account
+    // Address is not pre-populated for derived signers; must be created via createChild for that path.
+    return child
   }
 
   async sign (message) {
-    if (!this._account) throw new Error('Ledger is not connected yet.')
+    if (!this._account || !this._address) {
+      throw new Error('Ledger signer is not initialized. Construct it via LedgerSignerEvm.createChild(path, config).')
+    }
 
     const { observable } = this._account.signMessage(this._path, message)
     const { r, s, v } = await firstValueFrom(
@@ -131,7 +177,9 @@ export default class LedgerSignerEvm {
   }
 
   async signTransaction (unsignedTx) {
-    if (!this._account) throw new Error('Ledger is not connected yet.')
+    if (!this._account || !this._address) {
+      throw new Error('Ledger signer is not initialized. Construct it via LedgerSignerEvm.createChild(path, config).')
+    }
 
     const tx = Transaction.from(unsignedTx)
 
@@ -153,7 +201,9 @@ export default class LedgerSignerEvm {
   }
 
   async signTypedData (domain, types, message) {
-    if (!this._account) throw new Error('Ledger is not connected yet.')
+    if (!this._account || !this._address) {
+      throw new Error('Ledger signer is not initialized. Construct it via LedgerSignerEvm.createChild(path, config).')
+    }
 
     const [[primaryType]] = Object.entries(types)
 
@@ -174,8 +224,8 @@ export default class LedgerSignerEvm {
   }
 
   dispose () {
-    this._dmk.disconnect({ sessionId: this._sessionId })
-
+    // Do not disconnect shared session here to avoid breaking other derived signers.
+    // Proper ref-counted disposal will be added in a follow-up.
     this._account = undefined
     this._dmk = undefined
     this._sessionId = ''
