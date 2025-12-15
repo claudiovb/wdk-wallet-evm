@@ -118,6 +118,23 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   }
 
   /**
+   * Returns the account's address. If not set at construction time (e.g. lazy hardware signers),
+   * it asks the underlying signer to resolve it, then caches it locally.
+   *
+   * @returns {Promise<string>} The account's address.
+   */
+  async getAddress () {
+    if (this._address) return this._address
+    if (this._signer && typeof this._signer.getAddress === 'function') {
+      const addr = await this._signer.getAddress()
+      // Cache inside the read-only base shape
+      this.__address = addr
+      return addr
+    }
+    throw new Error("The account's address must be set to perform this operation.")
+  }
+
+  /**
    * Signs a message.
    *
    * @param {string} message - The message to sign.
@@ -137,7 +154,8 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   async verify (message, signature) {
     const address = await verifyMessage(message, signature)
 
-    return address.toLowerCase() === this._signer.address.toLowerCase()
+    const expected = (await this.getAddress()).toLowerCase()
+    return address.toLowerCase() === expected
   }
 
   /**
