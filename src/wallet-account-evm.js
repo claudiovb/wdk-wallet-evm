@@ -194,7 +194,9 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
-    return await this.sendTransaction(tx)
+    const { hash } = await this._account.sendTransaction(tx)
+
+    return { hash, fee }
   }
 
   /**
