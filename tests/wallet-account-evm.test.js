@@ -502,6 +502,13 @@ describe('WalletAccountEvm', () => {
       expect(afterRevoke.isDelegated).toBe(false)
       expect(afterRevoke.delegateAddress).toBeNull()
     })
+
+    test('should throw if the account is not connected to a provider', async () => {
+      const disconnected = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
+
+      await expect(disconnected.revokeDelegation())
+        .rejects.toThrow('The wallet must be connected to a provider to delegate.')
+    })
   })
 
 })
