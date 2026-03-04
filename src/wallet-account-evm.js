@@ -255,10 +255,6 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * @returns {Promise<Authorization>} The signed authorization.
    */
   async signAuthorization (auth) {
-    if (!auth) {
-      throw new Error('The authorization must include an address.')
-    }
-
     return await this._account.authorize(auth)
   }
 
