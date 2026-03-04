@@ -357,7 +357,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   }
 
   static async _getTransferTransaction (options) {
-    const { token, recipient, amount } = options
+    const { token, recipient, amount, authorizationList } = options
 
     const abi = ['function transfer(address to, uint256 amount) returns (bool)']
 
@@ -367,6 +367,10 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
       to: token,
       value: 0,
       data: contract.interface.encodeFunctionData('transfer', [recipient, amount])
+    }
+
+    if (authorizationList) {
+      tx.authorizationList = authorizationList
     }
 
     return tx

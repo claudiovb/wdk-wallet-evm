@@ -192,10 +192,6 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
 
     const tx = await WalletAccountEvm._getTransferTransaction(options)
 
-    if (options.authorizationList) {
-      tx.authorizationList = options.authorizationList
-    }
-
     const { fee } = await this.quoteSendTransaction(tx)
 
     if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
