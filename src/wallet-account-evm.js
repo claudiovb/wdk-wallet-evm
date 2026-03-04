@@ -34,9 +34,10 @@ import MemorySafeHDNodeWallet from './memory-safe/hd-node-wallet.js'
 /** @typedef {import('./wallet-account-read-only-evm.js').EvmTransaction} EvmTransaction */
 /** @typedef {import('./wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
 /** @typedef {import('./wallet-account-read-only-evm.js').TypedData} TypedData */
-/** @typedef {import('./wallet-account-read-only-evm.js').Erc7702AuthorizationRequest} Erc7702AuthorizationRequest */
-/** @typedef {import('./wallet-account-read-only-evm.js').Erc7702Authorization} Erc7702Authorization */
-/** @typedef {import('./wallet-account-read-only-evm.js').DelegationInfo} DelegationInfo */
+/** @typedef {import(‘./wallet-account-read-only-evm.js’).AuthorizationRequest} AuthorizationRequest */
+/** @typedef {import(‘./wallet-account-read-only-evm.js’).Authorization} Authorization */
+/** @typedef {import(‘./wallet-account-read-only-evm.js’).AuthorizationLike} AuthorizationLike */
+/** @typedef {import(‘./wallet-account-read-only-evm.js’).DelegationInfo} DelegationInfo */
 
 /**
  * @typedef {Object} ApproveOptions
@@ -46,7 +47,7 @@ import MemorySafeHDNodeWallet from './memory-safe/hd-node-wallet.js'
  */
 
 /**
- * @typedef {TransferOptions & { authorizationList?: Erc7702Authorization[] }} EvmTransferOptions
+ * @typedef {TransferOptions & { authorizationList?: AuthorizationLike[] }} EvmTransferOptions
  */
 
 const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
@@ -287,8 +288,8 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Signs an ERC-7702 authorization tuple.
    *
-   * @param {Erc7702AuthorizationRequest} auth - The authorization request.
-   * @returns {Promise<Erc7702Authorization>} The signed authorization.
+   * @param {AuthorizationRequest} auth - The authorization request.
+   * @returns {Promise<Authorization>} The signed authorization.
    */
   async signAuthorization (auth) {
     if (!auth) {

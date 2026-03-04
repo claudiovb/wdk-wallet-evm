@@ -23,6 +23,9 @@ import { multicall } from './multicall.js'
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 /** @typedef {import('ethers').TransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('ethers').Signature} Signature */
+/** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
+/** @typedef {import('ethers').Authorization} Authorization */
+/** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
 
 /** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
@@ -36,21 +39,6 @@ import { multicall } from './multicall.js'
  * @property {TypedDataDomain} domain - The domain separator.
  * @property {Record<string, TypedDataField[]>} types - The type definitions.
  * @property {Record<string, unknown>} message - The message data.
- */
-
-/**
- * @typedef {Object} Erc7702AuthorizationRequest
- * @property {string} address - The address of the contract to delegate to.
- * @property {number} [nonce] - The authorization nonce. If omitted, it is populated automatically.
- * @property {number} [chainId] - The chain ID. Defaults to the provider's chain ID. Set to 0 for chain-agnostic authorizations.
- */
-
-/**
- * @typedef {Object} Erc7702Authorization
- * @property {string} address - The address of the contract delegated to.
- * @property {number} nonce - The authorization nonce.
- * @property {number} chainId - The chain ID.
- * @property {Signature} signature - The signed authorization.
  */
 
 /**
@@ -70,7 +58,7 @@ import { multicall } from './multicall.js'
  * @property {number | bigint} [maxPriorityFeePerGas] - The price (in wei) per unit of gas this transaction will allow in addition to the [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559) block's base fee to bribe miners into giving this transaction priority. This is included in the maxFeePerGas, so this will not affect the total maximum cost set with maxFeePerGas.
  * @property {number} [type] - The transaction type (e.g. 4 for ERC-7702).
  * @property {number} [nonce] - The transaction nonce.
- * @property {Erc7702Authorization[]} [authorizationList] - An optional list of ERC-7702 signed authorizations for type 4 transactions.
+ * @property {AuthorizationLike[]} [authorizationList] - An optional list of ERC-7702 signed authorizations for type 4 transactions.
  */
 
 /**

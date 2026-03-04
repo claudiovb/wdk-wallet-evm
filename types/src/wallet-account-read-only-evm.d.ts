@@ -108,6 +108,9 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
 export type TypedDataDomain = import("ethers").TypedDataDomain;
 export type TypedDataField = import("ethers").TypedDataField;
 export type Signature = import("ethers").Signature;
+export type AuthorizationRequest = import("ethers").AuthorizationRequest;
+export type Authorization = import("ethers").Authorization;
+export type AuthorizationLike = import("ethers").AuthorizationLike;
 export type TypedData = {
     /**
      * - The domain separator.
@@ -121,38 +124,6 @@ export type TypedData = {
      * - The message data.
      */
     message: Record<string, unknown>;
-};
-export type Erc7702AuthorizationRequest = {
-    /**
-     * - The address of the contract to delegate to.
-     */
-    address: string;
-    /**
-     * - The authorization nonce. If omitted, it is populated automatically.
-     */
-    nonce?: number;
-    /**
-     * - The chain ID. Defaults to the provider's chain ID. Set to 0 for chain-agnostic authorizations.
-     */
-    chainId?: number;
-};
-export type Erc7702Authorization = {
-    /**
-     * - The address of the contract delegated to.
-     */
-    address: string;
-    /**
-     * - The authorization nonce.
-     */
-    nonce: number;
-    /**
-     * - The chain ID.
-     */
-    chainId: number;
-    /**
-     * - The signed authorization.
-     */
-    signature: Signature;
 };
 export type DelegationInfo = {
     /**
@@ -204,7 +175,7 @@ export type EvmTransaction = {
     /**
      * - An optional list of ERC-7702 signed authorizations for type 4 transactions.
      */
-    authorizationList?: Erc7702Authorization[];
+    authorizationList?: AuthorizationLike[];
 };
 export type EvmWalletConfig = {
     /**

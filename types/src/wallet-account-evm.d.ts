@@ -99,10 +99,10 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
     /**
      * Signs an ERC-7702 authorization tuple.
      *
-     * @param {Erc7702AuthorizationRequest} auth - The authorization request.
-     * @returns {Promise<Erc7702Authorization>} The signed authorization.
+     * @param {AuthorizationRequest} auth - The authorization request.
+     * @returns {Promise<Authorization>} The signed authorization.
      */
-    signAuthorization(auth: Erc7702AuthorizationRequest): Promise<Erc7702Authorization>;
+    signAuthorization(auth: AuthorizationRequest): Promise<Authorization>;
     /**
      * Delegates this EOA to a smart contract via an ERC-7702 type 4 transaction.
      *
@@ -127,8 +127,9 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      */
     dispose(): void;
 }
-export type Erc7702AuthorizationRequest = import("./wallet-account-read-only-evm.js").Erc7702AuthorizationRequest;
-export type Erc7702Authorization = import("./wallet-account-read-only-evm.js").Erc7702Authorization;
+export type AuthorizationRequest = import("./wallet-account-read-only-evm.js").AuthorizationRequest;
+export type Authorization = import("./wallet-account-read-only-evm.js").Authorization;
+export type AuthorizationLike = import("./wallet-account-read-only-evm.js").AuthorizationLike;
 export type DelegationInfo = import("./wallet-account-read-only-evm.js").DelegationInfo;
 export type HDNodeWallet = import("ethers").HDNodeWallet;
 export type IWalletAccount = import("@tetherto/wdk-wallet").IWalletAccount;
@@ -140,7 +141,7 @@ export type EvmTransaction = import("./wallet-account-read-only-evm.js").EvmTran
 export type EvmWalletConfig = import("./wallet-account-read-only-evm.js").EvmWalletConfig;
 export type TypedData = import("./wallet-account-read-only-evm.js").TypedData;
 export type EvmTransferOptions = TransferOptions & {
-    authorizationList?: Erc7702Authorization[];
+    authorizationList?: AuthorizationLike[];
 };
 export type ApproveOptions = {
     /**

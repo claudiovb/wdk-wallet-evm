@@ -360,7 +360,7 @@ new WalletAccountEvm(seed, path, config)
 | `quoteTransfer(options)` | Estimates the fee for an ERC20 transfer | `Promise<{fee: bigint}>` |
 | `getBalance()` | Returns the native token balance (in wei) | `Promise<bigint>` |
 | `getTokenBalance(tokenAddress)` | Returns the balance of a specific ERC20 token | `Promise<bigint>` |
-| `signAuthorization(auth)` | Signs an ERC-7702 authorization tuple | `Promise<Erc7702Authorization>` |
+| `signAuthorization(auth)` | Signs an ERC-7702 authorization tuple | `Promise<Authorization>` |
 | `delegate(delegateAddress)` | Delegates this EOA to a smart contract via a type 4 transaction | `Promise<{hash: string, fee: bigint}>` |
 | `revokeDelegation()` | Revokes any active ERC-7702 delegation | `Promise<{hash: string, fee: bigint}>` |
 | `getDelegation()` | Checks if the account has an active ERC-7702 delegation | `Promise<{isDelegated: boolean, delegateAddress: string \| null}>` |
@@ -380,7 +380,7 @@ Sends an EVM transaction.
   - `maxPriorityFeePerGas` (number | bigint, optional): EIP-1559 max priority fee per gas in wei
   - `type` (number, optional): Transaction type (e.g. 4 for ERC-7702)
   - `nonce` (number, optional): Transaction nonce
-  - `authorizationList` (Erc7702Authorization[], optional): Signed ERC-7702 authorizations for type 4 transactions
+  - `authorizationList` (Authorization[], optional): Signed ERC-7702 authorizations for type 4 transactions
 
 **Returns:** `Promise<{hash: string, fee: bigint}>` - Object containing hash and fee (in wei)
 
