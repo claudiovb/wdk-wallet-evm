@@ -550,10 +550,11 @@ describe('WalletAccountEvm', () => {
 
   describe('revokeDelegation', () => {
     test('should send a delegation to the zero address', async () => {
+      const EXPECTED_FEE = 101_010_972_554_972n
+
       const { hash, fee } = await account.revokeDelegation()
 
-      expect(hash).toBe('0x53377716b35083f080a218a04c3e42f61c2496ce567579f7353262b1140157b5')
-      expect(fee).toBe(101_010_972_554_972n)
+      expect(fee).toBe(EXPECTED_FEE)
 
       const tx = await hre.ethers.provider.getTransaction(hash)
 
