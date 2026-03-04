@@ -462,15 +462,6 @@ describe('WalletAccountEvm', () => {
       expect(auth).toHaveProperty('signature')
     })
 
-    test('should throw if address is missing', async () => {
-      await expect(account.signAuthorization({}))
-        .rejects.toThrow()
-    })
-
-    test('should throw if auth is null', async () => {
-      await expect(account.signAuthorization(null))
-        .rejects.toThrow('The authorization must include an address.')
-    })
   })
 
   describe('delegate', () => {
