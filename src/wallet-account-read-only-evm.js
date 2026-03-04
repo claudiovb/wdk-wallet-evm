@@ -16,7 +16,7 @@
 
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
 
-import { BrowserProvider, Contract, Interface, JsonRpcProvider, toQuantity, verifyMessage, verifyTypedData } from 'ethers'
+import { BrowserProvider, Contract, Interface, JsonRpcProvider, Signature, toQuantity, verifyMessage, verifyTypedData } from 'ethers'
 import { multicall } from './multicall.js'
 
 /** @typedef {import('ethers').Provider} Provider */
@@ -323,18 +323,20 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
 
   /** @private */
   async _estimateGasWithAuthList (tx) {
-    const formatAuth = (auth) => ({
-      chainId: toQuantity(auth.chainId ?? 0),
-      address: auth.address,
-      nonce: toQuantity(auth.nonce ?? 0),
-      ...(auth.signature
-        ? {
-            yParity: toQuantity(auth.signature.yParity),
-            r: toQuantity(auth.signature.r),
-            s: toQuantity(auth.signature.s)
-          }
-        : {})
-    })
+    const formatAuth = (auth) => {
+      const sig = typeof auth.signature === 'string'
+        ? Signature.from(auth.signature)
+        : auth.signature
+
+      return {
+        chainId: toQuantity(auth.chainId ?? 0),
+        address: auth.address,
+        nonce: toQuantity(auth.nonce ?? 0),
+        yParity: toQuantity(sig.yParity),
+        r: toQuantity(sig.r),
+        s: toQuantity(sig.s)
+      }
+    }
 
     const rpcTx = {
       type: '0x04',
