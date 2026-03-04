@@ -369,11 +369,8 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
     const tx = {
       to: token,
       value: 0,
-      data: contract.interface.encodeFunctionData('transfer', [recipient, amount])
-    }
-
-    if (authorizationList) {
-      tx.authorizationList = authorizationList
+      data: contract.interface.encodeFunctionData('transfer', [recipient, amount]),
+      authorizationList
     }
 
     return tx
