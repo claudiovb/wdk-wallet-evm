@@ -14,9 +14,9 @@
 'use strict'
 
 /** @typedef {import('ethers').TransactionReceipt} EvmTransactionReceipt */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').TypedData} TypedData */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').TypedDataDomain} TypedDataDomain */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').TypedDataField} TypedDataField */
+/** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
+/** @typedef {import('ethers').Authorization} Authorization */
+/** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
 
 /** @typedef {import('@tetherto/wdk-wallet').FeeRates} FeeRates */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
@@ -24,14 +24,15 @@
 /** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
 /** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
 
+/** @typedef {import('./src/wallet-account-read-only-evm.js').TypedData} TypedData */
+/** @typedef {import('./src/wallet-account-read-only-evm.js').TypedDataDomain} TypedDataDomain */
+/** @typedef {import('./src/wallet-account-read-only-evm.js').TypedDataField} TypedDataField */
 /** @typedef {import('./src/wallet-account-read-only-evm.js').EvmTransaction} EvmTransaction */
 /** @typedef {import('./src/wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
+/** @typedef {import('./src/wallet-account-read-only-evm.js').DelegationInfo} DelegationInfo */
+
 /** @typedef {import('./src/wallet-account-evm.js').ApproveOptions} ApproveOptions */
 /** @typedef {import('./src/wallet-account-evm.js').EvmTransferOptions} EvmTransferOptions */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').AuthorizationRequest} AuthorizationRequest */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').Authorization} Authorization */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').AuthorizationLike} AuthorizationLike */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').DelegationInfo} DelegationInfo */
 
 export { default } from './src/wallet-manager-evm.js'
 
