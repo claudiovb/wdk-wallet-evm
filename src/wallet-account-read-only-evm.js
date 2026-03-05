@@ -17,19 +17,18 @@
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
 
 import { BrowserProvider, Contract, Interface, JsonRpcProvider, Signature, toQuantity, verifyMessage, verifyTypedData } from 'ethers'
+
 import { multicall } from './multicall.js'
 
 /** @typedef {import('ethers').Provider} Provider */
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
-/** @typedef {import('ethers').TransactionReceipt} EvmTransactionReceipt */
-/** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
-
-/** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
-/** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
-/** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
-
 /** @typedef {import('ethers').TypedDataDomain} TypedDataDomain */
 /** @typedef {import('ethers').TypedDataField} TypedDataField */
+/** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
+/** @typedef {import('ethers').TransactionReceipt} EvmTransactionReceipt */
+
+/** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
+/** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
 
 /**
  * @typedef {Object} TypedData
@@ -59,12 +58,21 @@ import { multicall } from './multicall.js'
  */
 
 /**
+ * @typedef {Object} EvmTransferOptions
+ * @property {string} token - The address of the token to transfer.
+ * @property {string} recipient - The address of the recipient.
+ * @property {number | bigint} amount - The amount of tokens to transfer to the recipient (in base units).
+ * @property {AuthorizationLike[]} [authorizationList] - An optional list of ERC-7702 signed authorizations.
+ */
+
+/**
  * @typedef {Object} EvmWalletConfig
  * @property {string | Eip1193Provider} [provider] - The url of the rpc provider, or an instance of a class that implements eip-1193.
  * @property {number | bigint} [transferMaxFee] - The maximum fee amount for transfer operations.
  */
 
 const DELEGATION_DESIGNATOR_PREFIX = '0xef0100'
+
 const DELEGATION_DESIGNATOR_LENGTH = 48
 
 export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
@@ -210,7 +218,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   /**
    * Quotes the costs of a transfer operation.
    *
-   * @param {TransferOptions} options - The transfer's options.
+   * @param {EvmTransferOptions} options - The transfer's options.
    * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
    */
   async quoteTransfer (options) {
@@ -319,29 +327,31 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   }
 
   /** @private */
-  async _estimateGasWithAuthList (tx) {
+  async _estimateGasWithAuthList ({ from, to, value, data, authorizationList }) {
     const formatAuth = (auth) => {
-      const sig = typeof auth.signature === 'string'
-        ? Signature.from(auth.signature)
-        : auth.signature
+      const { address, nonce, chainId } = auth
+
+      const signature = auth.signature instanceof Signature
+        ? auth.signature
+        : Signature.from(auth.signature)
 
       return {
-        chainId: toQuantity(auth.chainId ?? 0),
-        address: auth.address,
-        nonce: toQuantity(auth.nonce ?? 0),
-        yParity: toQuantity(sig.yParity),
-        r: toQuantity(sig.r),
-        s: toQuantity(sig.s)
+        address,
+        nonce: toQuantity(nonce),
+        chainId: toQuantity(chainId),
+        r: toQuantity(signature.r),
+        s: toQuantity(signature.s),
+        yParity: toQuantity(signature.yParity)
       }
     }
 
     const rpcTx = {
+      from,
+      to,
+      value: toQuantity(value),
+      data: data ?? '0x',
       type: '0x04',
-      from: tx.from,
-      to: tx.to,
-      value: toQuantity(tx.value ?? 0),
-      data: tx.data ?? '0x',
-      authorizationList: tx.authorizationList.map(formatAuth)
+      authorizationList: authorizationList.map(formatAuth)
     }
 
     const result = await this._provider.send('eth_estimateGas', [rpcTx])
@@ -353,7 +363,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
    * Returns an evm transaction to execute the given token transfer.
    *
    * @protected
-   * @param {TransferOptions} options - The transfer's options.
+   * @param {EvmTransferOptions} options - The transfer's options.
    * @returns {Promise<EvmTransaction>} The evm transaction.
    */
   static async _getTransferTransaction (options) {

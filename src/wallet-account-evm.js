@@ -23,20 +23,20 @@ import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 import MemorySafeHDNodeWallet from './memory-safe/hd-node-wallet.js'
 
 /** @typedef {import('ethers').HDNodeWallet} HDNodeWallet */
+/** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
+/** @typedef {import('ethers').Authorization} Authorization */
+/** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
 
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccount} IWalletAccount */
 
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
-/** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
 /** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
 
-/** @typedef {import('./wallet-account-read-only-evm.js').EvmTransaction} EvmTransaction */
-/** @typedef {import('./wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
 /** @typedef {import('./wallet-account-read-only-evm.js').TypedData} TypedData */
-/** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
-/** @typedef {import('ethers').Authorization} Authorization */
-/** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
+/** @typedef {import('./wallet-account-read-only-evm.js').EvmTransaction} EvmTransaction */
+/** @typedef {import('./wallet-account-read-only-evm.js').EvmTransferOptions} EvmTransferOptions */
+/** @typedef {import('./wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
 
 /**
  * @typedef {Object} ApproveOptions
@@ -45,17 +45,11 @@ import MemorySafeHDNodeWallet from './memory-safe/hd-node-wallet.js'
  * @property {number | bigint} amount - The amount of tokens to approve to the spender.
  */
 
-/**
- * @typedef {Object} EvmTransferOptions
- * @property {string} token - The address of the token to transfer.
- * @property {string} recipient - The address of the recipient.
- * @property {number | bigint} amount - The amount of tokens to transfer to the recipient (in base units).
- * @property {AuthorizationLike[]} [authorizationList] - An optional list of ERC-7702 signed authorizations.
- */
-
 const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
-const DELEGATION_TX_GAS_LIMIT = 100_000
+
 const USDT_MAINNET_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+
+const DELEGATION_TX_GAS_LIMIT = 100_000
 
 /** @implements {IWalletAccount} */
 export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {

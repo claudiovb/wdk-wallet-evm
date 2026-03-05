@@ -112,17 +112,17 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
     dispose(): void;
 }
 export type HDNodeWallet = import("ethers").HDNodeWallet;
-export type IWalletAccount = import("@tetherto/wdk-wallet").IWalletAccount;
-export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
-export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
-export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
-export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
-export type EvmTransaction = import("./wallet-account-read-only-evm.js").EvmTransaction;
-export type EvmWalletConfig = import("./wallet-account-read-only-evm.js").EvmWalletConfig;
-export type TypedData = import("./wallet-account-read-only-evm.js").TypedData;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;
 export type AuthorizationLike = import("ethers").AuthorizationLike;
+export type IWalletAccount = import("@tetherto/wdk-wallet").IWalletAccount;
+export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
+export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
+export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
+export type TypedData = import("./wallet-account-read-only-evm.js").TypedData;
+export type EvmTransaction = import("./wallet-account-read-only-evm.js").EvmTransaction;
+export type EvmTransferOptions = import("./wallet-account-read-only-evm.js").EvmTransferOptions;
+export type EvmWalletConfig = import("./wallet-account-read-only-evm.js").EvmWalletConfig;
 export type ApproveOptions = {
     /**
      * - The address of the token to approve.
@@ -136,23 +136,5 @@ export type ApproveOptions = {
      * - The amount of tokens to approve to the spender.
      */
     amount: number | bigint;
-};
-export type EvmTransferOptions = {
-    /**
-     * - The address of the token to transfer.
-     */
-    token: string;
-    /**
-     * - The address of the recipient.
-     */
-    recipient: string;
-    /**
-     * - The amount of tokens to transfer to the recipient (in base units).
-     */
-    amount: number | bigint;
-    /**
-     * - An optional list of ERC-7702 signed authorizations.
-     */
-    authorizationList?: AuthorizationLike[];
 };
 import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js';

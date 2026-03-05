@@ -3,10 +3,10 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      * Returns an evm transaction to execute the given token transfer.
      *
      * @protected
-     * @param {TransferOptions} options - The transfer's options.
+     * @param {EvmTransferOptions} options - The transfer's options.
      * @returns {Promise<EvmTransaction>} The evm transaction.
      */
-    protected static _getTransferTransaction(options: TransferOptions): Promise<EvmTransaction>;
+    protected static _getTransferTransaction(options: EvmTransferOptions): Promise<EvmTransaction>;
     /**
      * Creates a new evm read-only wallet account.
      *
@@ -64,10 +64,10 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
     /**
      * Quotes the costs of a transfer operation.
      *
-     * @param {TransferOptions} options - The transfer's options.
+     * @param {EvmTransferOptions} options - The transfer's options.
      * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
      */
-    quoteTransfer(options: TransferOptions): Promise<Omit<TransferResult, "hash">>;
+    quoteTransfer(options: EvmTransferOptions): Promise<Omit<TransferResult, "hash">>;
     /**
      * Returns a transaction's receipt.
      *
@@ -109,13 +109,12 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
 }
 export type Provider = import("ethers").Provider;
 export type Eip1193Provider = import("ethers").Eip1193Provider;
-export type EvmTransactionReceipt = import("ethers").TransactionReceipt;
-export type AuthorizationLike = import("ethers").AuthorizationLike;
-export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
-export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
-export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
 export type TypedDataDomain = import("ethers").TypedDataDomain;
 export type TypedDataField = import("ethers").TypedDataField;
+export type AuthorizationLike = import("ethers").AuthorizationLike;
+export type EvmTransactionReceipt = import("ethers").TransactionReceipt;
+export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
+export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
 export type TypedData = {
     /**
      * - The domain separator.
@@ -179,6 +178,24 @@ export type EvmTransaction = {
     nonce?: number;
     /**
      * - An optional list of ERC-7702 signed authorizations for type 4 transactions.
+     */
+    authorizationList?: AuthorizationLike[];
+};
+export type EvmTransferOptions = {
+    /**
+     * - The address of the token to transfer.
+     */
+    token: string;
+    /**
+     * - The address of the recipient.
+     */
+    recipient: string;
+    /**
+     * - The amount of tokens to transfer to the recipient (in base units).
+     */
+    amount: number | bigint;
+    /**
+     * - An optional list of ERC-7702 signed authorizations.
      */
     authorizationList?: AuthorizationLike[];
 };

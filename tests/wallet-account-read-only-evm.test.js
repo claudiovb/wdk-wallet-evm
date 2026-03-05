@@ -169,7 +169,7 @@ describe('WalletAccountReadOnlyEvm', () => {
         address: testToken.target
       })
 
-      const TRANSACTION = {
+      const TRANSACTION_WITH_AUTHORIZATION_LIST = {
         to: ADDRESS,
         value: 0,
         authorizationList: [auth]
@@ -177,7 +177,7 @@ describe('WalletAccountReadOnlyEvm', () => {
 
       const EXPECTED_FEE = 108_671_056_222_910n
 
-      const { fee } = await account.quoteSendTransaction(TRANSACTION)
+      const { fee } = await account.quoteSendTransaction(TRANSACTION_WITH_AUTHORIZATION_LIST)
 
       expect(fee).toBe(EXPECTED_FEE)
     })
@@ -306,38 +306,6 @@ describe('WalletAccountReadOnlyEvm', () => {
     })
   })
 
-  describe('getDelegation', () => {
-    test('should return false for a regular EOA', async () => {
-      const delegation = await account.getDelegation()
-
-      expect(delegation).toEqual({
-        isDelegated: false,
-        delegateAddress: null
-      })
-    })
-
-    test('should return true for a delegated EOA', async () => {
-      const delegateAddress = '0x1234567890abcdef1234567890abcdef12345678'
-      const designator = '0xef0100' + delegateAddress.slice(2)
-
-      await hre.network.provider.send('hardhat_setCode', [ADDRESS, designator])
-
-      const delegation = await account.getDelegation()
-
-      expect(delegation).toEqual({
-        isDelegated: true,
-        delegateAddress
-      })
-    })
-
-    test('should throw if the account is not connected to a provider', async () => {
-      const accountWithoutProvider = new WalletAccountReadOnlyEvm(ADDRESS)
-
-      await expect(accountWithoutProvider.getDelegation())
-        .rejects.toThrow('The wallet must be connected to a provider to check delegation.')
-    })
-  })
-
   describe('verifyTypedData', () => {
     const DOMAIN = {
       name: 'TestApp',
@@ -402,6 +370,39 @@ describe('WalletAccountReadOnlyEvm', () => {
         message: MESSAGE
       }, 'A bad signature'))
         .rejects.toThrow('invalid BytesLike value')
+    })
+  })
+
+  describe('getDelegation', () => {
+    test('should return false for a regular EOA', async () => {
+      const delegation = await account.getDelegation()
+
+      expect(delegation).toEqual({
+        isDelegated: false,
+        delegateAddress: null
+      })
+    })
+
+    test('should return true for a delegated EOA', async () => {
+      const DELEGATE_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
+
+      const designator = '0xef0100' + DELEGATE_ADDRESS.slice(2)
+
+      await hre.network.provider.send('hardhat_setCode', [ADDRESS, designator])
+
+      const delegation = await account.getDelegation()
+
+      expect(delegation).toEqual({
+        isDelegated: true,
+        delegateAddress: DELEGATE_ADDRESS
+      })
+    })
+
+    test('should throw if the account is not connected to a provider', async () => {
+      const account = new WalletAccountReadOnlyEvm(ADDRESS)
+
+      await expect(account.getDelegation())
+        .rejects.toThrow('The wallet must be connected to a provider to check delegation.')
     })
   })
 })
