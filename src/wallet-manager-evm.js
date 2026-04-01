@@ -74,17 +74,14 @@ export default class WalletManagerEvm extends WalletManager {
 
     if (Array.isArray(provider)) {
       if (provider.length > 0) {
-        this._provider = provider
-          .reduce(
-            (failover, entry) => {
-              const option = typeof entry === 'string'
-                ? new JsonRpcProvider(entry)
-                : new BrowserProvider(entry)
-              return failover.addProvider(option)
-            },
-            new FailoverProvider({ retries })
-          )
-          .initialize()
+        const failoverProvider = new FailoverProvider({ retries })
+
+        for (const entry of provider) {
+          const option = typeof entry === 'string' ? new JsonRpcProvider(entry) : new BrowserProvider(entry)
+          failoverProvider.addProvider(option)
+        }
+
+        this._provider = failoverProvider.initialize()
       }
     } else if (provider) {
       this._provider =
