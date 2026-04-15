@@ -112,7 +112,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
 
         for (const entry of provider) {
           const option = typeof entry === 'string'
-            ? new JsonRpcProvider(entry)
+            ? new JsonRpcProvider(entry, Network.from(config.chainId), { staticNetwork: true })
             : new BrowserProvider(entry)
           failoverProvider.addProvider(option)
         }
