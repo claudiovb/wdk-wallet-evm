@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 
-import { ContractFactory, Contract, Signature } from 'ethers'
+import { ContractFactory, Contract, Signature, Transaction } from 'ethers'
 
 import * as bip39 from 'bip39'
 
@@ -188,6 +188,27 @@ describe('WalletAccountEvm', () => {
       })
 
       expect(signature).toBe(EXPECTED_SIGNATURE)
+    })
+  })
+
+  describe('signTransaction', () => {
+    test('should sign a transaction and return a valid hex string', async () => {
+      const accountWithoutProvider = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
+      
+      const TRANSACTION = {
+        to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+        value: 1_000n,
+        gasLimit: 21_000n,
+        maxFeePerGas: 2_000_000_000n,
+        maxPriorityFeePerGas: 1_000_000_000n,
+        nonce: 0,
+        chainId: 31_337n
+      }
+      const signedTx = await accountWithoutProvider.signTransaction(TRANSACTION)
+      const decoded = Transaction.from(signedTx)
+      expect(decoded.to).toBe(TRANSACTION.to)
+      expect(decoded.value).toBe(TRANSACTION.value)
+      expect(decoded.from).toBe(ACCOUNT.address)
     })
   })
 
