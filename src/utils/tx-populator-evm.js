@@ -164,7 +164,14 @@ export async function populateTransactionEvm (provider, from, tx) {
   return populated
 }
 
-/** @private */
+/**
+ * Estimates gas for a type 4 transaction including the authorization list overhead.
+ *
+ * @private
+ * @param {import('ethers').Provider} provider - The ethers provider.
+ * @param {{from: string, to: string, value: number|bigint, data: string, authorizationList: any[]}} txFields
+ * @returns {Promise<bigint>} The estimated gas limit.
+ */
 async function _estimateGasWithAuthList (provider, { from, to, value, data, authorizationList }) {
   const formatAuth = (auth) => {
     const { address, nonce, chainId } = auth

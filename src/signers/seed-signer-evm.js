@@ -142,11 +142,16 @@ export default class SeedSignerEvm {
       seed = bip39.mnemonicToSeedSync(seed)
     }
 
+    /** @private */
     this._isRoot = true
+    /** @private */
     this._root =
       opts.root || (seed ? MemorySafeHDNodeWallet.fromSeed(seed) : undefined)
+    /** @private */
     this._account = undefined
+    /** @private */
     this._address = undefined
+    /** @private */
     this._path = undefined
 
     if (opts.path) {
@@ -159,27 +164,33 @@ export default class SeedSignerEvm {
     }
   }
 
+  /** @type {boolean} */
   get isRoot () {
     return this._isRoot
   }
 
+  /** @type {boolean} */
   get isPrivateKey () {
     return false
   }
 
+  /** @type {number|undefined} */
   get index () {
     if (!this._path) return undefined
     return +this._path.split('/').pop()
   }
 
+  /** @type {string} */
   get path () {
     return this._path
   }
 
+  /** @type {string} */
   get address () {
     return this._address
   }
 
+  /** @type {{privateKey: Uint8Array|null, publicKey: Uint8Array|null}} */
   get keyPair () {
     return {
       privateKey: this._account ? this._account.privateKeyBuffer : null,
@@ -256,6 +267,7 @@ export default class SeedSignerEvm {
   /** Dispose secrets from memory. */
   dispose () {
     if (this._account) this._account.dispose()
+    this._account = undefined
     if (this._root) this._root.dispose()
     this._root = undefined
   }

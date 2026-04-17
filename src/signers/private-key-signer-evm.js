@@ -18,9 +18,10 @@ import { BaseWallet } from 'ethers'
 import MemorySafeSigningKey from '../memory-safe/signing-key.js'
 
 /** @typedef {import('../utils/tx-populator-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
+/** @typedef {import('./seed-signer-evm.js').ISignerEvm} ISignerEvm */
 
 /**
- * * @implements {ISignerEvm}
+ * @implements {ISignerEvm}
  * Signer that wraps a raw private key in a memory-safe buffer, exposing a minimal
  * interface for signing messages, transactions and typed data. This signer does
  * not support derivation and always represents a single account.
@@ -37,22 +38,33 @@ export default class PrivateKeySignerEvm {
       privateKeyBuffer = new Uint8Array(Buffer.from(hex, 'hex'))
     }
 
+    /** @private */
     this._signingKey = new MemorySafeSigningKey(privateKeyBuffer)
+    /** @private */
     this._wallet = new BaseWallet(this._signingKey, null)
+    /** @private */
     this._address = this._wallet.address
+    /** @private */
     this._isRoot = false
+    /** @private */
     this._path = undefined
   }
 
+  /** @type {boolean} */
   get isRoot () { return this._isRoot }
+  /** @type {boolean} */
   get isPrivateKey () { return true }
+  /** @type {number} */
   get index () { return 0 }
+  /** @type {string} */
   get path () { return this._path }
+  /** @type {string} */
   get address () { return this._address }
+  /** @type {{privateKey: Uint8Array|null, publicKey: Uint8Array|null}} */
   get keyPair () {
     return {
-      privateKey: this._signingKey.privateKeyBuffer,
-      publicKey: this._signingKey.publicKeyBuffer
+      privateKey: this._signingKey ? this._signingKey.privateKeyBuffer : null,
+      publicKey: this._signingKey ? this._signingKey.publicKeyBuffer : null
     }
   }
 
@@ -79,7 +91,12 @@ export default class PrivateKeySignerEvm {
     return this._wallet.signMessage(message)
   }
 
-  /** @param {UnsignedEvmTransaction} unsignedTx @returns {Promise<string>} */
+  /**
+   * Signs a transaction and returns the serialized signed transaction hex.
+   *
+   * @param {UnsignedEvmTransaction} unsignedTx - The unsigned transaction object.
+   * @returns {Promise<string>}
+   */
   async signTransaction (unsignedTx) {
     return this._wallet.signTransaction(unsignedTx)
   }
@@ -107,6 +124,7 @@ export default class PrivateKeySignerEvm {
   /** Dispose secrets from memory. */
   dispose () {
     this._signingKey.dispose()
+    this._signingKey = undefined
     this._wallet = undefined
   }
 }

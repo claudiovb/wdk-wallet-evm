@@ -18,7 +18,10 @@ import WalletManager from '@tetherto/wdk-wallet'
 
 import { BrowserProvider, JsonRpcProvider } from 'ethers'
 
+import FailoverProvider from '@tetherto/wdk-failover-provider'
+
 import WalletAccountEvm from './wallet-account-evm.js'
+import SeedSignerEvm from './signers/seed-signer-evm.js'
 
 /** @typedef {import('ethers').Provider} Provider */
 
@@ -44,13 +47,20 @@ export default class WalletManagerEvm extends WalletManager {
   static _FEE_RATE_FAST_MULTIPLIER = 200n
 
   /**
-   * Creates a new wallet manager for evm blockchains using a root signer.
+   * Creates a new wallet manager for evm blockchains.
    *
-   * @param {object} signer - The root signer (must not be a private key signer).
+   * Accepts either a BIP-39 seed (string/Uint8Array) for backwards compatibility, or a
+   * pre-built root signer object. Private key signers are not supported.
+   *
+   * @param {string|Uint8Array|object} seedOrSigner - A BIP-39 seed phrase, seed bytes, or a root signer.
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
-  constructor (signer, config = {}) {
-    if (signer?.isPrivateKey) {
+  constructor (seedOrSigner, config = {}) {
+    let signer = seedOrSigner
+    if (typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array) {
+      signer = new SeedSignerEvm(seedOrSigner)
+    }
+    if (signer.isPrivateKey) {
       throw new Error('Private key signers are not supported for wallet managers.')
     }
     super(signer, config)
@@ -63,18 +73,34 @@ export default class WalletManagerEvm extends WalletManager {
      */
     this._config = config
 
-    const { provider } = config
+    /**
+     * An ethers provider to interact with a node of the blockchain.
+     *
+     * @protected
+     * @type {Provider | undefined}
+     */
+    this._provider = undefined
 
-    if (provider) {
-      /**
-       * An ethers provider to interact with a node of the blockchain.
-       *
-       * @protected
-       * @type {Provider | undefined}
-       */
-      this._provider = typeof provider === 'string'
-        ? new JsonRpcProvider(provider)
-        : new BrowserProvider(provider)
+    const { provider, retries = 3 } = config
+
+    if (Array.isArray(provider)) {
+      if (provider.length > 0) {
+        const failoverProvider = new FailoverProvider({ retries })
+
+        for (const entry of provider) {
+          const option = typeof entry === 'string'
+            ? new JsonRpcProvider(entry)
+            : new BrowserProvider(entry)
+          failoverProvider.addProvider(option)
+        }
+
+        this._provider = failoverProvider.initialize()
+      }
+    } else if (provider) {
+      this._provider =
+        typeof provider === 'string'
+          ? new JsonRpcProvider(provider)
+          : new BrowserProvider(provider)
     }
   }
 

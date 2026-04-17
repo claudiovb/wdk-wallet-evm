@@ -144,7 +144,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * @returns {Promise<string>} The message's signature.
    */
   async sign (message) {
-    return this._signer.sign(message)
+    return await this._signer.sign(message)
   }
 
   /**

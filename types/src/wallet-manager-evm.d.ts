@@ -17,12 +17,15 @@ export default class WalletManagerEvm extends WalletManager {
      */
     protected static _FEE_RATE_FAST_MULTIPLIER: bigint;
     /**
-     * Creates a new wallet manager for evm blockchains using a root signer.
+     * Creates a new wallet manager for evm blockchains.
      *
-     * @param {object} signer - The root signer (must not be a private key signer).
+     * Accepts either a BIP-39 seed (string/Uint8Array) for backwards compatibility, or a
+     * pre-built root signer object. Private key signers are not supported.
+     *
+     * @param {string|Uint8Array|object} seedOrSigner - A BIP-39 seed phrase, seed bytes, or a root signer.
      * @param {EvmWalletConfig} [config] - The configuration object.
      */
-    constructor(signer: object, config?: EvmWalletConfig);
+    constructor(seedOrSigner: string | Uint8Array | object, config?: EvmWalletConfig);
     /**
      * An ethers provider to interact with a node of the blockchain.
      *
@@ -59,6 +62,12 @@ export default class WalletManagerEvm extends WalletManager {
      * @returns {Promise<WalletAccountEvm>} The account.
      */
     getAccountByPath(path: string, signerName?: string): Promise<WalletAccountEvm>;
+    /**
+     * Returns the current fee rates.
+     *
+     * @returns {Promise<FeeRates>} The fee rates (in weis).
+     */
+    getFeeRates(): Promise<FeeRates>;
 }
 export type Provider = import("ethers").Provider;
 export type FeeRates = import("@tetherto/wdk-wallet").FeeRates;

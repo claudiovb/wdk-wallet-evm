@@ -42,37 +42,45 @@ const BIP_44_ETH_DERIVATION_PATH_PREFIX = "44'/60'"
 export default class LedgerSignerEvm {
   /**
    * @param {string} path - Relative BIP-44 path segment (e.g. "0'/0/0"). Prefixed internally.
-   * @param {{dmk?: DeviceManagementKit}} [opts]
+   * @param {DeviceManagementKit} [dmk] - Optional DMK instance. Auto-created if omitted.
    */
-  constructor (path, opts = {}) {
+  constructor (path, dmk) {
     if (!path) {
       throw new Error('Path is required.')
     }
 
+    /** @private */
     this._account = undefined
+    /** @private */
     this._address = undefined
+    /** @private */
     this._sessionId = ''
+    /** @private */
     this._path = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${path}`
 
     /**
+     * @private
      * @type {DeviceManagementKit}
      */
     this._dmk =
-      opts.dmk ||
+      dmk ||
       new DeviceManagementKitBuilder()
         .addTransport(webHidTransportFactory)
         .build()
   }
 
+  /** @type {number|undefined} */
   get index () {
     if (!this._path) return undefined
     return +this._path.split('/').pop()
   }
 
+  /** @type {string} */
   get path () {
     return this._path
   }
 
+  /** @type {string|undefined} */
   get address () {
     if (!this._account) return undefined
     return this._address
@@ -236,18 +244,15 @@ export default class LedgerSignerEvm {
    * @returns {LedgerSignerEvm} A new hardware-backed signer bound to the derived path.
    */
   derive (relPath, _cfg) {
-    const mergedOpts = {
-      ...this.opts,
-      dmk: this._dmk
-    }
-
-    return new LedgerSignerEvm(relPath, mergedOpts)
+    return new LedgerSignerEvm(relPath, this._dmk)
   }
 
-  /** @returns {Promise<string>} */
+  /**
+   * @returns {Promise<string>} The account's address.
+   */
   async getAddress () {
     if (!this._account) await this._connect()
-    await this._ensureDeviceReady('get address')
+    await this._ensureDeviceReady()
     return this._address
   }
 
@@ -259,7 +264,7 @@ export default class LedgerSignerEvm {
    */
   async sign (message) {
     if (!this._account) await this._connect()
-    await this._ensureDeviceReady('message signing')
+    await this._ensureDeviceReady()
 
     const attempt = async () => {
       const { observable } = this._account.signMessage(this._path, message)
@@ -282,10 +287,15 @@ export default class LedgerSignerEvm {
     return formatSignatureHex({ r, s, v })
   }
 
-  /** @param {UnsignedEvmTransaction} unsignedTx @returns {Promise<string>} */
+  /**
+   * Signs a transaction and returns the serialized signed transaction hex.
+   *
+   * @param {UnsignedEvmTransaction} unsignedTx - The unsigned transaction object.
+   * @returns {Promise<string>} The serialized signed transaction hex.
+   */
   async signTransaction (unsignedTx) {
     if (!this._account) await this._connect()
-    await this._ensureDeviceReady('transaction signing')
+    await this._ensureDeviceReady()
 
     delete unsignedTx.from // Ledger does not support signing transactions with the from field
     const tx = Transaction.from(unsignedTx)
@@ -306,6 +316,7 @@ export default class LedgerSignerEvm {
 
   /**
    * EIP-712 typed data signing.
+   *
    * @param {Record<string, any>} domain
    * @param {Record<string, any>} types
    * @param {Record<string, any>} message
@@ -313,7 +324,7 @@ export default class LedgerSignerEvm {
    */
   async signTypedData (domain, types, message) {
     if (!this._account) await this._connect()
-    await this._ensureDeviceReady('typed data signing')
+    await this._ensureDeviceReady()
 
     const [[primaryType]] = Object.entries(types)
 
@@ -361,7 +372,8 @@ export default class LedgerSignerEvm {
     )
   }
 
-  /** Clear device handles and local state. */
+  /** Clear device handles and local state.
+   * @returns {void} */
   dispose () {
     this._disconnect()
     this._dmk = undefined

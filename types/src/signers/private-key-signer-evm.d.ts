@@ -1,6 +1,7 @@
 /** @typedef {import('../utils/tx-populator-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
+/** @typedef {import('./seed-signer-evm.js').ISignerEvm} ISignerEvm */
 /**
- * * @implements {ISignerEvm}
+ * @implements {ISignerEvm}
  * Signer that wraps a raw private key in a memory-safe buffer, exposing a minimal
  * interface for signing messages, transactions and typed data. This signer does
  * not support derivation and always represents a single account.
@@ -10,19 +11,30 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
      * @param {string|Uint8Array} privateKey - Hex string (with/without 0x) or raw key bytes.
      */
     constructor(privateKey: string | Uint8Array);
-    _signingKey: MemorySafeSigningKey;
-    _wallet: BaseWallet;
-    _address: string;
-    _isRoot: boolean;
-    _path: any;
+    /** @private */
+    private _signingKey;
+    /** @private */
+    private _wallet;
+    /** @private */
+    private _address;
+    /** @private */
+    private _isRoot;
+    /** @private */
+    private _path;
+    /** @type {boolean} */
     get isRoot(): boolean;
+    /** @type {boolean} */
     get isPrivateKey(): boolean;
+    /** @type {number} */
     get index(): number;
-    get path(): any;
+    /** @type {string|undefined} */
+    get path(): string | undefined;
+    /** @type {string} */
     get address(): string;
+    /** @type {{privateKey: Uint8Array|null, publicKey: Uint8Array|null}} */
     get keyPair(): {
-        privateKey: any;
-        publicKey: import("@noble/secp256k1").Bytes;
+        privateKey: Uint8Array | null;
+        publicKey: Uint8Array | null;
     };
     /**
      * PrivateKeySignerEvm is not a hierarchical signer and cannot derive.
@@ -38,7 +50,12 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
      * @returns {Promise<string>} The message's signature.
      */
     sign(message: string): Promise<string>;
-    /** @param {UnsignedEvmTransaction} unsignedTx @returns {Promise<string>} */
+    /**
+     * Signs a transaction and returns the serialized signed transaction hex.
+     *
+     * @param {UnsignedEvmTransaction} unsignedTx - The unsigned transaction object.
+     * @returns {Promise<string>}
+     */
     signTransaction(unsignedTx: UnsignedEvmTransaction): Promise<string>;
     /**
      * EIP-712 typed data signing.
@@ -58,5 +75,6 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
     dispose(): void;
 }
 export type UnsignedEvmTransaction = import("../utils/tx-populator-evm.js").UnsignedEvmTransaction;
+export type ISignerEvm = import("./seed-signer-evm.js").ISignerEvm;
 import MemorySafeSigningKey from '../memory-safe/signing-key.js';
 import { BaseWallet } from 'ethers';
