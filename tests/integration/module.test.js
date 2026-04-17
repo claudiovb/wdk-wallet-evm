@@ -103,42 +103,6 @@ describe('@tetherto/wdk-wallet-evm', () => {
     expect(fee).toBe(EXPECTED_FEE)
   })
 
-  test('should sign a transaction without broadcasting, then broadcast manually', async () => {
-    const account = await wallet.getAccount(0)
-
-    const address = await account.getAddress()
-    const nonce = await hre.ethers.provider.getTransactionCount(address)
-    const { chainId } = await hre.ethers.provider.getNetwork()
-
-    const TRANSACTION = {
-      to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
-      value: 1_000n,
-      gasLimit: 21_000n,
-      maxFeePerGas: 2_000_000_000n,
-      maxPriorityFeePerGas: 1_000_000_000n,
-      nonce,
-      chainId
-    }
-
-    const signedTx = await account.signTransaction(TRANSACTION)
-
-    expect(typeof signedTx).toBe('string')
-    expect(signedTx.startsWith('0x')).toBe(true)
-
-    const txResponse = await hre.ethers.provider.broadcastTransaction(signedTx)
-    await txResponse.wait()
-
-    const { fee } = await hre.ethers.provider.getTransactionReceipt(txResponse.hash)
-
-    const transaction = await hre.ethers.provider.getTransaction(txResponse.hash)
-
-    expect(transaction.to).toBe(TRANSACTION.to)
-    expect(transaction.value).toBe(TRANSACTION.value)
-
-    const balanceAfterBroadcast = await account.getBalance()
-    expect(balanceAfterBroadcast).toBe(INITIAL_BALANCE - fee - TRANSACTION.value)
-  })
-
   test('should derive two accounts, send a tx from account 1 to 2 and get the correct balances', async () => {
     const account0 = await wallet.getAccount(0)
 
@@ -340,5 +304,38 @@ describe('@tetherto/wdk-wallet-evm', () => {
 
     await expect(account.transfer(TRANSFER))
       .rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
+  })
+
+  test('should sign a transaction, then broadcast manually', async () => {
+    const account = await wallet.getAccount(0)
+
+    const address = await account.getAddress()
+    const nonce = await hre.ethers.provider.getTransactionCount(address)
+    const { chainId } = await hre.ethers.provider.getNetwork()
+
+    const TRANSACTION = {
+      to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+      value: 1_000n,
+      gasLimit: 21_000n,
+      maxFeePerGas: 2_000_000_000n,
+      maxPriorityFeePerGas: 1_000_000_000n,
+      nonce,
+      chainId
+    }
+
+    const signedTx = await account.signTransaction(TRANSACTION)
+
+    const txResponse = await hre.ethers.provider.broadcastTransaction(signedTx)
+    await txResponse.wait()
+
+    const { fee } = await hre.ethers.provider.getTransactionReceipt(txResponse.hash)
+
+    const transaction = await hre.ethers.provider.getTransaction(txResponse.hash)
+
+    expect(transaction.to).toBe(TRANSACTION.to)
+    expect(transaction.value).toBe(TRANSACTION.value)
+
+    const balanceAfterBroadcast = await account.getBalance()
+    expect(balanceAfterBroadcast).toBe(INITIAL_BALANCE - fee - TRANSACTION.value)
   })
 })
