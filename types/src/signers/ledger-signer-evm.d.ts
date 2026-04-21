@@ -43,17 +43,9 @@ export default class LedgerSignerEvm implements ISignerEvm {
      * @throws {Error} Always throws to indicate unavailability on Ledger.
      */
     get keyPair(): void;
-    /**
-     * Disconnect current session if any.
-     *
-     * @private
-     */
+    /** @private */
     private _disconnect;
-    /**
-     * Reconnect device and refresh signer/address
-     *
-     * @private
-     */
+    /** @private */
     private _reconnect;
     /**
      * Ensure the device is in a usable state before sending actions.
@@ -72,11 +64,7 @@ export default class LedgerSignerEvm implements ISignerEvm {
      * @private
      */
     private _consumeDeviceAction;
-    /**
-     * Discover and connect the device
-     *
-     * @private
-     */
+    /** @private */
     private _connect;
     /**
      * Derive a new signer at the given relative path, reusing the current device session.

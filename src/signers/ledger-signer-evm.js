@@ -61,9 +61,6 @@ export default class LedgerSignerEvm {
     /** @private */
     this._path = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${path}`
 
-    /**
-     * @private
-     * @type {DeviceManagementKit}
     /** @private */
     this._dmk =
       dmk ||
@@ -98,11 +95,7 @@ export default class LedgerSignerEvm {
     throw new Error('Key pair is not available for Ledger signer.')
   }
 
-  /**
-   * Disconnect current session if any.
-   *
-   * @private
-   */
+  /** @private */
   async _disconnect () {
     try {
       if (this._account && this._dmk && this._sessionId) {
@@ -116,11 +109,7 @@ export default class LedgerSignerEvm {
     }
   }
 
-  /**
-   * Reconnect device and refresh signer/address
-   *
-   * @private
-   */
+  /** @private */
   async _reconnect () {
     if (!this._dmk || !this._sessionId) {
       await this._connect()
@@ -207,11 +196,7 @@ export default class LedgerSignerEvm {
     )
   }
 
-  /**
-   * Discover and connect the device
-   *
-   * @private
-   */
+  /** @private */
   async _connect () {
     // Discover & Connect the device
     const device = await firstValueFrom(this._dmk.startDiscovering({}))
