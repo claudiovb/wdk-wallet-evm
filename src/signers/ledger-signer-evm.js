@@ -52,10 +52,6 @@ export default class LedgerSignerEvm {
    * @param {DeviceManagementKit} [dmk] - Optional DMK instance. Auto-created if omitted.
    */
   constructor (path, dmk) {
-    if (!path) {
-      throw new Error('Path is required.')
-    }
-
     /** @private */
     this._account = undefined
     /** @private */
@@ -274,25 +270,9 @@ export default class LedgerSignerEvm {
     if (!this._account) await this._connect()
     await this._ensureDeviceReady()
 
-    const attempt = async () => {
-      const { observable } = this._account.signMessage(this._path, message)
-      return await this._consumeDeviceAction(observable)
-    }
-
-    const formatSignatureHex = ({ r, s, v }) => {
-      const rHex = String(r).replace(/^0x/i, '')
-      const sHex = String(s).replace(/^0x/i, '')
-      let vNum = Number(BigInt(v))
-      if (vNum === 0 || vNum === 1) vNum += 27
-      let vHex = vNum.toString(16)
-      if (vHex.length % 2 !== 0) vHex = '0' + vHex
-      const rPadded = rHex.padStart(64, '0')
-      const sPadded = sHex.padStart(64, '0')
-      return '0x' + rPadded + sPadded + vHex
-    }
-
-    const { r, s, v } = await attempt()
-    return formatSignatureHex({ r, s, v })
+    const { observable } = this._account.signMessage(this._path, message)
+    const { r, s, v } = await this._consumeDeviceAction(observable)
+    return Signature.from({ r, s, v }).serialized
   }
 
   /**
@@ -334,28 +314,14 @@ export default class LedgerSignerEvm {
 
     const [[primaryType]] = Object.entries(types)
 
-    const attempt = async () => {
-      const { observable } = this._account.signTypedData(this._path, {
-        domain,
-        types,
-        message,
-        primaryType
-      })
-      return await this._consumeDeviceAction(observable)
-    }
-
-    const { r, s, v } = await attempt()
-    return (
-      '0x' +
-      String(r).replace(/^0x/i, '').padStart(64, '0') +
-      String(s).replace(/^0x/i, '').padStart(64, '0') +
-      (() => {
-        let vNum = Number(BigInt(v))
-        if (vNum === 0 || vNum === 1) vNum += 27
-        const hex = vNum.toString(16)
-        return hex.length % 2 ? '0' + hex : hex
-      })()
-    )
+    const { observable } = this._account.signTypedData(this._path, {
+      domain,
+      types,
+      message,
+      primaryType
+    })
+    const { r, s, v } = await this._consumeDeviceAction(observable)
+    return Signature.from({ r, s, v }).serialized
   }
 
   /**

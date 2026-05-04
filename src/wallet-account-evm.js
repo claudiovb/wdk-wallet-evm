@@ -58,9 +58,6 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
   constructor (signer, config = {}) {
-    if (!signer) {
-      throw new Error('A signer is required.')
-    }
     if (signer.isRoot) {
       throw new Error('The signer is the root signer. Call derive method to create a child signer.')
     }
