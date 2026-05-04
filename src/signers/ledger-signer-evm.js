@@ -23,10 +23,12 @@ import { SignerEthBuilder } from '@ledgerhq/device-signer-kit-ethereum'
 import { filter, firstValueFrom, map } from 'rxjs'
 import { Signature, Transaction, getBytes } from 'ethers'
 
+/** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('../utils/tx-populator-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
 /** @typedef {import('../wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
+/** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
 /** @typedef {import('rxjs').Observable} Observable */
 
 const BIP_44_ETH_DERIVATION_PATH_PREFIX = "44'/60'"
@@ -44,6 +46,8 @@ const BIP_44_ETH_DERIVATION_PATH_PREFIX = "44'/60'"
  */
 export default class LedgerSignerEvm {
   /**
+   * Create a hardware-backed Ledger signer for the given derivation path.
+   *
    * @param {string} path - Relative BIP-44 path segment (e.g. "0'/0/0"). Prefixed internally.
    * @param {DeviceManagementKit} [dmk] - Optional DMK instance. Auto-created if omitted.
    */
@@ -57,6 +61,8 @@ export default class LedgerSignerEvm {
     /** @private */
     this._address = undefined
     /** @private */
+    this._publicKey = undefined
+    /** @private */
     this._sessionId = ''
     /** @private */
     this._path = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${path}`
@@ -69,30 +75,43 @@ export default class LedgerSignerEvm {
         .build()
   }
 
-  /** @type {number|undefined} */
+  /**
+   * The last component index of the derivation path, if available.
+   * @type {number|undefined}
+   */
   get index () {
     if (!this._path) return undefined
     return +this._path.split('/').pop()
   }
 
-  /** @type {string} */
+  /**
+   * The full BIP-44 derivation path.
+   * @type {string}
+   */
   get path () {
     return this._path
   }
 
-  /** @type {string|undefined} */
+  /**
+   * The account's address, resolved after the first device connection.
+   * @type {string|undefined}
+   */
   get address () {
     if (!this._account) return undefined
     return this._address
   }
 
   /**
-   * Ledger-backed signers do not expose private keys; key pairs are not available.
+   * The account's key pair. Private key is always null for Ledger signers.
    *
-   * @throws {Error} Always throws to indicate unavailability on Ledger.
+   * @type {KeyPair}
+   * @throws {Error} If the device has not been connected yet.
    */
   get keyPair () {
-    throw new Error('Key pair is not available for Ledger signer.')
+    if (!this._publicKey) {
+      throw new Error('Connect the device first.')
+    }
+    return { privateKey: null, publicKey: this._publicKey }
   }
 
   /** @private */
@@ -105,6 +124,7 @@ export default class LedgerSignerEvm {
       // ignore best-effort disconnect
     } finally {
       this._account = undefined
+      this._publicKey = undefined
       this._sessionId = ''
     }
   }
@@ -211,13 +231,13 @@ export default class LedgerSignerEvm {
       sessionId: this._sessionId
     }).build()
 
-    // Get the address
     try {
       const { observable } = this._account.getAddress(this._path)
-      const { address } = await this._consumeDeviceAction(observable)
+      const { address, publicKey } = await this._consumeDeviceAction(observable)
 
-      // Active
       this._address = address
+      const pubHex = publicKey.startsWith('0x') ? publicKey : `0x${publicKey}`
+      this._publicKey = getBytes(pubHex)
     } catch (err) {
       await this._disconnect()
       throw err
@@ -303,14 +323,12 @@ export default class LedgerSignerEvm {
   }
 
   /**
-   * EIP-712 typed data signing.
+   * Signs typed data according to EIP-712.
    *
-   * @param {Record<string, any>} domain
-   * @param {Record<string, any>} types
-   * @param {Record<string, any>} message
-   * @returns {Promise<string>}
+   * @param {TypedData} typedData - The typed data to sign.
+   * @returns {Promise<string>} The typed data signature.
    */
-  async signTypedData (domain, types, message) {
+  async signTypedData ({ domain, types, message }) {
     if (!this._account) await this._connect()
     await this._ensureDeviceReady()
 

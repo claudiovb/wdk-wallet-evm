@@ -22,10 +22,18 @@ const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
 
 /** @typedef {import('../utils/tx-populator-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet').ISigner} ISigner */
+/** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('../wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
+/** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
 /** @typedef {import('../memory-safe/hd-node-wallet.js').default} MemorySafeHDNodeWallet */
+
+/**
+ * @typedef {Object} SeedSignerEvmOpts
+ * @property {MemorySafeHDNodeWallet} [root] - An existing HD node wallet root to derive from.
+ * @property {string} [path] - Relative BIP-44 path segment (e.g. "0'/0/0").
+ */
 
 /**
  * Interface for EVM signers.
@@ -51,7 +59,10 @@ export class ISignerEvm {
     throw new NotImplementedError('path')
   }
 
-  /** @returns {string|undefined} */
+  /**
+   * The account's address, if available.
+   * @type {string|undefined}
+   */
   get address () {
     throw new NotImplementedError('address')
   }
@@ -66,7 +77,10 @@ export class ISignerEvm {
     throw new NotImplementedError('derive(relPath, cfg?)')
   }
 
-  /** @returns {Promise<string>} */
+  /**
+   * Returns the account's address.
+   * @returns {Promise<string>}
+   */
   async getAddress () {
     throw new NotImplementedError('getAddress(message)')
   }
@@ -82,7 +96,7 @@ export class ISignerEvm {
 
   /**
    * Sign a transaction-like object compatible with ethers Transaction.from.
-   * @param {Record<string, any>} unsignedTx
+   * @param {UnsignedEvmTransaction} unsignedTx
    * @returns {Promise<string>} The serialized signed transaction hex.
    */
   async signTransaction (unsignedTx) {
@@ -90,14 +104,13 @@ export class ISignerEvm {
   }
 
   /**
-   * EIP-712 typed data signing.
-   * @param {Record<string, any>} domain
-   * @param {Record<string, any>} types
-   * @param {Record<string, any>} message
-   * @returns {Promise<string>}
+   * Signs typed data according to EIP-712.
+   *
+   * @param {TypedData} typedData - The typed data to sign.
+   * @returns {Promise<string>} The typed data signature.
    */
-  async signTypedData (domain, types, message) {
-    throw new NotImplementedError('signTypedData(domain, types, message)')
+  async signTypedData ({ domain, types, message }) {
+    throw new NotImplementedError('signTypedData(typedData)')
   }
 
   /**
@@ -126,7 +139,7 @@ export default class SeedSignerEvm {
    * Provide either a mnemonic/seed or an existing root via opts.root.
    *
    * @param {string|Uint8Array|null} seed - BIP-39 mnemonic or seed bytes. Omit when providing `opts.root`.
-   * @param {{root?: MemorySafeHDNodeWallet, path?: string}} [opts]
+   * @param {SeedSignerEvmOpts} [opts] - Construction options for root reuse or direct child derivation.
    */
   constructor (seed, opts = {}) {
     // If a root is provided, do not expect a seed
@@ -167,33 +180,51 @@ export default class SeedSignerEvm {
     }
   }
 
-  /** @type {boolean} */
+  /**
+   * Whether this signer is a root (master) signer that can only derive children.
+   * @type {boolean}
+   */
   get isRoot () {
     return this._isRoot
   }
 
-  /** @type {boolean} */
+  /**
+   * Whether this signer was created from a standalone private key.
+   * @type {boolean}
+   */
   get isPrivateKey () {
     return false
   }
 
-  /** @type {number|undefined} */
+  /**
+   * The last component index of the derivation path, if available.
+   * @type {number|undefined}
+   */
   get index () {
     if (!this._path) return undefined
     return +this._path.split('/').pop()
   }
 
-  /** @type {string} */
+  /**
+   * The full derivation path if this is a child signer.
+   * @type {string}
+   */
   get path () {
     return this._path
   }
 
-  /** @type {string} */
+  /**
+   * The account's derived address.
+   * @type {string}
+   */
   get address () {
     return this._address
   }
 
-  /** @type {{privateKey: Uint8Array|null, publicKey: Uint8Array|null}} */
+  /**
+   * The account's key pair (private and public key buffers).
+   * @type {KeyPair}
+   */
   get keyPair () {
     return {
       privateKey: this._account ? this._account.privateKeyBuffer : null,
@@ -211,7 +242,10 @@ export default class SeedSignerEvm {
     return new SeedSignerEvm(null, { root: this._root, path: relPath })
   }
 
-  /** @returns {Promise<string>} */
+  /**
+   * Returns the account's derived address.
+   * @returns {Promise<string>}
+   */
   async getAddress () {
     return this._address
   }
@@ -243,13 +277,12 @@ export default class SeedSignerEvm {
   }
 
   /**
-   * EIP-712 typed data signing.
-   * @param {Record<string, any>} domain
-   * @param {Record<string, any>} types
-   * @param {Record<string, any>} message
-   * @returns {Promise<string>}
+   * Signs typed data according to EIP-712.
+   *
+   * @param {TypedData} typedData - The typed data to sign.
+   * @returns {Promise<string>} The typed data signature.
    */
-  async signTypedData (domain, types, message) {
+  async signTypedData ({ domain, types, message }) {
     if (!this._account) {
       throw new Error(
         'Cannot sign typed data from a root signer. Derive a child first.'

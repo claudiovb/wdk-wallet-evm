@@ -21,6 +21,7 @@ import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 import SeedSignerEvm from './signers/seed-signer-evm.js'
 import { populateTransactionEvm } from './utils/tx-populator-evm.js'
 
+/** @typedef {import('./signers/seed-signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('ethers').HDNodeWallet} HDNodeWallet */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
@@ -53,7 +54,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Creates a new evm wallet account using a signer.
    *
-   * @param {object} signer - A signer implementing the EVM signer interface (must be a child, not a root).
+   * @param {ISignerEvm} signer - A signer implementing the EVM signer interface (must be a child, not a root).
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
   constructor (signer, config = {}) {
@@ -154,7 +155,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * @returns {Promise<string>} The typed data signature.
    */
   async signTypedData ({ domain, types, message }) {
-    return await this._signer.signTypedData(domain, types, message)
+    return await this._signer.signTypedData({ domain, types, message })
   }
 
   /**

@@ -34,6 +34,19 @@ import { Signature, toQuantity } from 'ethers'
  * @property {string[]} [blobVersionedHashes]
  * @property {import('ethers').AuthorizationLike[]} [authorizationList]
  */
+
+/**
+ * Build a fully populated unsigned transaction ready for signing.
+ *
+ * Resolves chain ID, nonce, gas limit and fee fields from the provider when not
+ * explicitly supplied in `tx`. Supports legacy (type 0/1), EIP-1559 (type 2),
+ * EIP-4844 (type 3) and EIP-7702 (type 4) transaction styles.
+ *
+ * @param {import('ethers').Provider} provider - An ethers-compatible JSON-RPC provider.
+ * @param {string} from - The sender address.
+ * @param {UnsignedEvmTransaction} tx - The partial transaction to populate.
+ * @returns {Promise<UnsignedEvmTransaction>} The fully populated unsigned transaction.
+ */
 export async function populateTransactionEvm (provider, from, tx) {
   const net = await provider.getNetwork()
   const chainId = Number(net.chainId)

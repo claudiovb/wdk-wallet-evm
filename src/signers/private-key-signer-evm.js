@@ -19,8 +19,10 @@ import MemorySafeSigningKey from '../memory-safe/signing-key.js'
 
 /** @typedef {import('../utils/tx-populator-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
 /** @typedef {import('./seed-signer-evm.js').ISignerEvm} ISignerEvm */
+/** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
+/** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
 
 /**
  * @implements {ISignerEvm}
@@ -30,6 +32,8 @@ import MemorySafeSigningKey from '../memory-safe/signing-key.js'
  */
 export default class PrivateKeySignerEvm {
   /**
+   * Create a signer from a raw private key.
+   *
    * @param {string|Uint8Array} privateKey - Hex string (with/without 0x) or raw key bytes.
    */
   constructor (privateKey) {
@@ -52,17 +56,39 @@ export default class PrivateKeySignerEvm {
     this._path = undefined
   }
 
-  /** @type {boolean} */
+  /**
+   * Whether this signer is a root (master) signer. Always false for private key signers.
+   * @type {boolean}
+   */
   get isRoot () { return this._isRoot }
-  /** @type {boolean} */
+
+  /**
+   * Whether this signer was created from a standalone private key.
+   * @type {boolean}
+   */
   get isPrivateKey () { return true }
-  /** @type {number} */
+
+  /**
+   * The account index. Always 0 for private key signers.
+   * @type {number}
+   */
   get index () { return 0 }
-  /** @type {string} */
+
+  /**
+   * The derivation path. Always undefined for private key signers.
+   * @type {string}
+   */
   get path () { return this._path }
-  /** @type {string} */
+
+  /**
+   * The account's address.
+   * @type {string}
+   */
   get address () { return this._address }
-  /** @type {{privateKey: Uint8Array|null, publicKey: Uint8Array|null}} */
+  /**
+   * The account's key pair (private and public key buffers).
+   * @type {KeyPair}
+   */
   get keyPair () {
     return {
       privateKey: this._signingKey ? this._signingKey.privateKeyBuffer : null,
@@ -104,13 +130,12 @@ export default class PrivateKeySignerEvm {
   }
 
   /**
-   * EIP-712 typed data signing.
-   * @param {Record<string, any>} domain
-   * @param {Record<string, any>} types
-   * @param {Record<string, any>} message
-   * @returns {Promise<string>}
+   * Signs typed data according to EIP-712.
+   *
+   * @param {TypedData} typedData - The typed data to sign.
+   * @returns {Promise<string>} The typed data signature.
    */
-  async signTypedData (domain, types, message) {
+  async signTypedData ({ domain, types, message }) {
     return this._wallet.signTypedData(domain, types, message)
   }
 

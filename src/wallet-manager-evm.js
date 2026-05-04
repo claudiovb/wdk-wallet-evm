@@ -23,6 +23,7 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
 import WalletAccountEvm from './wallet-account-evm.js'
 import SeedSignerEvm from './signers/seed-signer-evm.js'
 
+/** @typedef {import('./signers/seed-signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('ethers').Provider} Provider */
 
 /** @typedef {import("@tetherto/wdk-wallet").FeeRates} FeeRates */
@@ -52,7 +53,7 @@ export default class WalletManagerEvm extends WalletManager {
    * Accepts either a BIP-39 seed (string/Uint8Array) for backwards compatibility, or a
    * pre-built root signer object. Private key signers are not supported.
    *
-   * @param {string|Uint8Array|object} seedOrSigner - A BIP-39 seed phrase, seed bytes, or a root signer.
+   * @param {string|Uint8Array|ISignerEvm} seedOrSigner - A BIP-39 seed phrase, seed bytes, or a root signer.
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
   constructor (seedOrSigner, config = {}) {
@@ -108,7 +109,7 @@ export default class WalletManagerEvm extends WalletManager {
    * Registers an additional root signer under a name.
    *
    * @param {string} signerName - The signer name.
-   * @param {object} signer - The root signer to register.
+   * @param {ISignerEvm} signer - The root signer to register.
    */
   createSigner (signerName, signer) {
     if (!signerName) {
