@@ -22,10 +22,10 @@ export default class WalletManagerEvm extends WalletManager {
      * Accepts either a BIP-39 seed (string/Uint8Array) for backwards compatibility, or a
      * pre-built root signer object. Private key signers are not supported.
      *
-     * @param {string|Uint8Array|object} seedOrSigner - A BIP-39 seed phrase, seed bytes, or a root signer.
+     * @param {string|Uint8Array|ISignerEvm} seedOrSigner - A BIP-39 seed phrase, seed bytes, or a root signer.
      * @param {EvmWalletConfig} [config] - The configuration object.
      */
-    constructor(seedOrSigner: string | Uint8Array | object, config?: EvmWalletConfig);
+    constructor(seedOrSigner: string | Uint8Array | ISignerEvm, config?: EvmWalletConfig);
     /**
      * An ethers provider to interact with a node of the blockchain.
      *
@@ -37,9 +37,9 @@ export default class WalletManagerEvm extends WalletManager {
      * Registers an additional root signer under a name.
      *
      * @param {string} signerName - The signer name.
-     * @param {object} signer - The root signer to register.
+     * @param {ISignerEvm} signer - The root signer to register.
      */
-    createSigner(signerName: string, signer: object): void;
+    createSigner(signerName: string, signer: ISignerEvm): void;
     /**
      * Returns the wallet account at a specific index (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)).
      *
@@ -69,6 +69,7 @@ export default class WalletManagerEvm extends WalletManager {
      */
     getFeeRates(): Promise<FeeRates>;
 }
+export type ISignerEvm = import("./signers/seed-signer-evm.js").ISignerEvm;
 export type Provider = import("ethers").Provider;
 export type FeeRates = import("@tetherto/wdk-wallet").FeeRates;
 export type EvmWalletConfig = import("./wallet-account-evm.js").EvmWalletConfig;

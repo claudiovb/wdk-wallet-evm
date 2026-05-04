@@ -3,8 +3,8 @@
  * @typedef {import("./seed-signer-evm.js").ISignerEvm} ISignerEvm
  * @typedef {import("./seed-signer-evm.js").UnsignedEvmTransaction} UnsignedEvmTransaction
  * @typedef {import("../wallet-account-read-only-evm.js").EvmWalletConfig} EvmWalletConfig
- * @typedef {import('ethers').TypedDataDomain} TypedDataDomain
- * @typedef {import('ethers').TypedDataField} TypedDataField
+ * @typedef {import("../wallet-account-read-only-evm.js").TypedData} TypedData
+ * @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair
  * @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest
  * @typedef {import('ethers').Authorization} Authorization
  * @typedef {import('rxjs').Observable<any>} Observable
@@ -26,6 +26,8 @@ export default class LedgerSignerEvm implements ISignerEvm {
     /** @private */
     private _address;
     /** @private */
+    private _publicKey;
+    /** @private */
     private _sessionId;
     /** @private */
     private _path;
@@ -38,11 +40,12 @@ export default class LedgerSignerEvm implements ISignerEvm {
     /** @type {string|undefined} */
     get address(): string | undefined;
     /**
-     * Ledger-backed signers do not expose private keys; key pairs are not available.
+     * The account's key pair. Private key is always null for Ledger signers.
      *
-     * @throws {Error} Always throws to indicate unavailability on Ledger.
+     * @type {KeyPair}
+     * @throws {Error} If the device has not been connected yet.
      */
-    get keyPair(): void;
+    get keyPair(): KeyPair;
     /** @private */
     private _disconnect;
     /** @private */
@@ -93,14 +96,12 @@ export default class LedgerSignerEvm implements ISignerEvm {
      */
     signTransaction(unsignedTx: UnsignedEvmTransaction): Promise<string>;
     /**
-     * EIP-712 typed data signing.
+     * Signs typed data according to EIP-712.
      *
-     * @param {TypedDataDomain} domain
-     * @param {Record<string, TypedDataField[]>} types
-     * @param {Record<string, any>} message
-     * @returns {Promise<string>}
+     * @param {TypedData} typedData - The typed data to sign.
+     * @returns {Promise<string>} The typed data signature.
      */
-    signTypedData(domain: TypedDataDomain, types: Record<string, TypedDataField[]>, message: Record<string, any>): Promise<string>;
+    signTypedData({ domain, types, message }: TypedData): Promise<string>;
     /**
      * Sign an ERC-7702 authorization tuple.
      *
@@ -116,11 +117,11 @@ export default class LedgerSignerEvm implements ISignerEvm {
     dispose(): void;
 }
 export type EvmWalletConfig = import("../wallet-account-read-only-evm.js").EvmWalletConfig;
+export type TypedData = import("../wallet-account-read-only-evm.js").TypedData;
+export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
 export type DeviceManagementKit = import("@ledgerhq/device-management-kit").DeviceManagementKit;
 export type ISignerEvm = import("./seed-signer-evm.js").ISignerEvm;
 export type UnsignedEvmTransaction = import("./seed-signer-evm.js").UnsignedEvmTransaction;
-export type TypedDataDomain = import("ethers").TypedDataDomain;
-export type TypedDataField = import("ethers").TypedDataField;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;
 export type Observable = import("rxjs").Observable<any>;

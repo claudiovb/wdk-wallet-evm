@@ -1,6 +1,6 @@
 /** @typedef {import('../wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
-/** @typedef {import('ethers').TypedDataDomain} TypedDataDomain */
-/** @typedef {import('ethers').TypedDataField} TypedDataField */
+/** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
+/** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
 /** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
@@ -43,7 +43,10 @@ export class ISignerEvm {
      * @type {string|undefined}
      */
     get path(): string | undefined;
-    /** @returns {string|undefined} */
+    /**
+     * The account's address, if available.
+     * @type {string|undefined}
+     */
     get address(): string | undefined;
     /**
      * Derive a child signer from this signer using a relative path (e.g. "0'/0/0").
@@ -52,7 +55,10 @@ export class ISignerEvm {
      * @returns {ISignerEvm}
      */
     derive(relPath: string, _cfg?: EvmWalletConfig): ISignerEvm;
-    /** @returns {Promise<string>} */
+    /**
+     * Returns the account's address.
+     * @returns {Promise<string>}
+     */
     getAddress(): Promise<string>;
     /**
      * Sign a plain message.
@@ -67,13 +73,12 @@ export class ISignerEvm {
      */
     signTransaction(unsignedTx: UnsignedEvmTransaction): Promise<string>;
     /**
-     * EIP-712 typed data signing.
-     * @param {TypedDataDomain} domain
-     * @param {Record<string, TypedDataField[]>} types
-     * @param {Record<string, any>} message
-     * @returns {Promise<string>}
+     * Signs typed data according to EIP-712.
+     *
+     * @param {TypedData} typedData - The typed data to sign.
+     * @returns {Promise<string>} The typed data signature.
      */
-    signTypedData(domain: TypedDataDomain, types: Record<string, TypedDataField[]>, message: Record<string, any>): Promise<string>;
+    signTypedData({ domain, types, message }: TypedData): Promise<string>;
     /**
      * Sign an ERC-7702 authorization tuple.
      * @param {AuthorizationRequest} auth
@@ -115,10 +120,7 @@ export default class SeedSignerEvm implements ISignerEvm {
     get index(): number;
     get path(): string;
     get address(): any;
-    get keyPair(): {
-        privateKey: Uint8Array | null;
-        publicKey: Uint8Array | null;
-    };
+    get keyPair(): KeyPair;
     /**
      * Derive a child signer using the provided relative path (e.g. "0'/0/0").
      * @param {string} relPath
@@ -139,13 +141,12 @@ export default class SeedSignerEvm implements ISignerEvm {
      */
     signTransaction(unsignedTx: UnsignedEvmTransaction): Promise<string>;
     /**
-     * EIP-712 typed data signing.
-     * @param {TypedDataDomain} domain
-     * @param {Record<string, TypedDataField[]>} types
-     * @param {Record<string, any>} message
-     * @returns {Promise<string>}
+     * Signs typed data according to EIP-712.
+     *
+     * @param {TypedData} typedData - The typed data to sign.
+     * @returns {Promise<string>} The typed data signature.
      */
-    signTypedData(domain: TypedDataDomain, types: Record<string, TypedDataField[]>, message: Record<string, any>): Promise<string>;
+    signTypedData({ domain, types, message }: TypedData): Promise<string>;
     /**
      * Sign an ERC-7702 authorization tuple.
      * @param {AuthorizationRequest} auth
@@ -156,8 +157,8 @@ export default class SeedSignerEvm implements ISignerEvm {
     dispose(): void;
 }
 export type EvmWalletConfig = import("../wallet-account-read-only-evm.js").EvmWalletConfig;
-export type TypedDataDomain = import("ethers").TypedDataDomain;
-export type TypedDataField = import("ethers").TypedDataField;
+export type TypedData = import("../wallet-account-read-only-evm.js").TypedData;
+export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;
 export type AuthorizationLike = import("ethers").AuthorizationLike;

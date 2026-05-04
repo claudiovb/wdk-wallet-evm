@@ -1,7 +1,7 @@
 /** @typedef {import('./seed-signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('./seed-signer-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
-/** @typedef {import('ethers').TypedDataDomain} TypedDataDomain */
-/** @typedef {import('ethers').TypedDataField} TypedDataField */
+/** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
+/** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
 /**
@@ -35,11 +35,11 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
     get path(): string | undefined;
     /** @type {string} */
     get address(): string;
-    /** @type {{privateKey: Uint8Array|null, publicKey: Uint8Array|null}} */
-    get keyPair(): {
-        privateKey: Uint8Array | null;
-        publicKey: Uint8Array | null;
-    };
+    /**
+     * The account's key pair (private and public key buffers).
+     * @type {KeyPair}
+     */
+    get keyPair(): KeyPair;
     /**
      * PrivateKeySignerEvm is not a hierarchical signer and cannot derive.
      * @throws {Error}
@@ -62,13 +62,12 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
      */
     signTransaction(unsignedTx: UnsignedEvmTransaction): Promise<string>;
     /**
-     * EIP-712 typed data signing.
-     * @param {TypedDataDomain} domain
-     * @param {Record<string, TypedDataField[]>} types
-     * @param {Record<string, any>} message
-     * @returns {Promise<string>}
+     * Signs typed data according to EIP-712.
+     *
+     * @param {TypedData} typedData - The typed data to sign.
+     * @returns {Promise<string>} The typed data signature.
      */
-    signTypedData(domain: TypedDataDomain, types: Record<string, TypedDataField[]>, message: Record<string, any>): Promise<string>;
+    signTypedData({ domain, types, message }: TypedData): Promise<string>;
     /**
      * Sign an ERC-7702 authorization tuple.
      * @param {AuthorizationRequest} auth
@@ -80,7 +79,7 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
 }
 export type ISignerEvm = import("./seed-signer-evm.js").ISignerEvm;
 export type UnsignedEvmTransaction = import("./seed-signer-evm.js").UnsignedEvmTransaction;
-export type TypedDataDomain = import("ethers").TypedDataDomain;
-export type TypedDataField = import("ethers").TypedDataField;
+export type TypedData = import("../wallet-account-read-only-evm.js").TypedData;
+export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;

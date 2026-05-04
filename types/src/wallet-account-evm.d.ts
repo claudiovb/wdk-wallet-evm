@@ -13,10 +13,10 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
     /**
      * Creates a new evm wallet account using a signer.
      *
-     * @param {object} signer - A signer implementing the EVM signer interface (must be a child, not a root).
+     * @param {ISignerEvm} signer - A signer implementing the EVM signer interface (must be a child, not a root).
      * @param {EvmWalletConfig} [config] - The configuration object.
      */
-    constructor(signer: object, config?: EvmWalletConfig);
+    constructor(signer: ISignerEvm, config?: EvmWalletConfig);
     /**
      * The wallet account configuration.
      *
@@ -128,6 +128,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      */
     dispose(): void;
 }
+export type ISignerEvm = import("./signers/seed-signer-evm.js").ISignerEvm;
 export type HDNodeWallet = import("ethers").HDNodeWallet;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;
