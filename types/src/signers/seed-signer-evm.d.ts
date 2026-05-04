@@ -117,8 +117,8 @@ export default class SeedSignerEvm implements ISignerEvm {
     private _path;
     get isRoot(): boolean;
     get isPrivateKey(): boolean;
-    get index(): number;
-    get path(): string;
+    get index(): number | undefined;
+    get path(): string | undefined;
     get address(): any;
     get keyPair(): KeyPair;
     /**

@@ -76,7 +76,7 @@ export default class PrivateKeySignerEvm {
 
   /**
    * The derivation path. Always undefined for private key signers.
-   * @type {string}
+   * @type {string|undefined}
    */
   get path () { return this._path }
 

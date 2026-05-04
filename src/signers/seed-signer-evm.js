@@ -82,7 +82,7 @@ export class ISignerEvm {
    * @returns {Promise<string>}
    */
   async getAddress () {
-    throw new NotImplementedError('getAddress(message)')
+    throw new NotImplementedError('getAddress()')
   }
 
   /**
@@ -207,7 +207,7 @@ export default class SeedSignerEvm {
 
   /**
    * The full derivation path if this is a child signer.
-   * @type {string}
+   * @type {string|undefined}
    */
   get path () {
     return this._path
