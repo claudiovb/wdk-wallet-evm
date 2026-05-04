@@ -8,6 +8,7 @@ import PrivateKeySignerEvm from '../src/signers/private-key-signer-evm.js'
 const VALID_SEED_PHRASE = 'cook voyage document eight skate token alien guide drink uncle term abuse'
 const VALID_SEED = bip39.mnemonicToSeedSync(VALID_SEED_PHRASE)
 const VALID_PRIVATE_KEY = '260905feebf1ec684f36f1599128b85f3a26c2b817f2065a2fc278398449c41f'
+const EXPECTED_PUBLIC_KEY = '036c082582225926b9356d95b91a4acffa3511b7cc2a14ef5338c090ea2cc3d0aa'
 
 const MESSAGE = 'Dummy message to sign.'
 const EXPECTED_SIGNATURE = '0xd130f94c52bf393206267278ac0b6009e14f11712578e5c1f7afe4a12685c5b96a77a0832692d96fc51f4bd403839572c55042ecbcc92d215879c5c8bb5778c51c'
@@ -27,8 +28,10 @@ describe('SeedSignerEvm', () => {
 
   test('should throw if both seed and root are provided', () => {
     const root = new SeedSignerEvm(VALID_SEED_PHRASE)
-    expect(() => { new SeedSignerEvm(VALID_SEED_PHRASE, { root: root._root }) }) // eslint-disable-line no-new
+    const child = root.derive("0'/0/0")
+    expect(() => { new SeedSignerEvm(VALID_SEED_PHRASE, { root: child }) }) // eslint-disable-line no-new
       .toThrow('Provide either a seed or a root, not both.')
+    child.dispose()
     root.dispose()
   })
 
@@ -50,8 +53,8 @@ describe('SeedSignerEvm', () => {
     expect(child.address).toBe(EXPECTED_ADDRESS)
     expect(child.path).toBe("m/44'/60'/0'/0/0")
     expect(child.index).toBe(0)
-    expect(child.keyPair.privateKey).toBeInstanceOf(Uint8Array)
-    expect(child.keyPair.publicKey).toBeInstanceOf(Uint8Array)
+    expect(Buffer.from(child.keyPair.privateKey).toString('hex')).toBe(VALID_PRIVATE_KEY)
+    expect(Buffer.from(child.keyPair.publicKey).toString('hex')).toBe(EXPECTED_PUBLIC_KEY)
 
     child.dispose()
     root.dispose()
@@ -80,7 +83,7 @@ describe('SeedSignerEvm', () => {
     const root = new SeedSignerEvm(VALID_SEED_PHRASE)
     root.dispose()
 
-    expect(() => root.derive("0'/0/0")).toThrow()
+    expect(() => root.derive("0'/0/0")).toThrow('Seed or root is required.')
   })
 
   test('should return the correct signature', async () => {
@@ -108,7 +111,6 @@ describe('SeedSignerEvm', () => {
     child.dispose()
 
     expect(child.keyPair.privateKey).toBeNull()
-    expect(child._root).toBeUndefined()
   })
 })
 
@@ -154,7 +156,7 @@ describe('PrivateKeySignerEvm', () => {
     const signer = new PrivateKeySignerEvm(VALID_PRIVATE_KEY)
 
     const address = await signer.getAddress()
-    expect(address).toBe(signer.address)
+    expect(address).toBe(EXPECTED_ADDRESS)
 
     signer.dispose()
   })
