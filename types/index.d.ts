@@ -1,6 +1,8 @@
 export { default } from "./src/wallet-manager-evm.js";
 export { default as WalletAccountReadOnlyEvm } from "./src/wallet-account-read-only-evm.js";
 export { default as WalletAccountEvm } from "./src/wallet-account-evm.js";
+export { ISigner } from "@tetherto/wdk-wallet";
+export { ISignerEvm } from "./src/signers/signer-evm.js";
 export type TypedDataDomain = import("ethers").TypedDataDomain;
 export type TypedDataField = import("ethers").TypedDataField;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
@@ -17,4 +19,3 @@ export type EvmTransaction = import("./src/wallet-account-read-only-evm.js").Evm
 export type EvmTransferOptions = import("./src/wallet-account-read-only-evm.js").EvmTransferOptions;
 export type EvmWalletConfig = import("./src/wallet-account-read-only-evm.js").EvmWalletConfig;
 export type ApproveOptions = import("./src/wallet-account-evm.js").ApproveOptions;
-export type UnsignedEvmTransaction = import("./src/utils/tx-populator-evm.js").UnsignedEvmTransaction;

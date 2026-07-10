@@ -16,17 +16,15 @@
 import * as bip39 from 'bip39'
 
 import MemorySafeHDNodeWallet from '../memory-safe/hd-node-wallet.js'
-import { ISigner, NotImplementedError } from '@tetherto/wdk-wallet'
 
 const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
 
 // Relative path of the account derived when none is provided.
 const DEFAULT_ACCOUNT_PATH = "0'/0/0"
 
-/** @typedef {import('../utils/tx-populator-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
-/** @typedef {import('@tetherto/wdk-wallet').ISigner} ISigner */
-/** @typedef {import('@tetherto/wdk-wallet').SignerError} SignerError */
+/** @typedef {import('./signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
+/** @typedef {import('ethers').TransactionLike} TransactionLike */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
 /** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
@@ -40,135 +38,23 @@ const DEFAULT_ACCOUNT_PATH = "0'/0/0"
  */
 
 /**
- * Interface for EVM signers, extending the base `ISigner` from `@tetherto/wdk-wallet`.
- *
- * @extends {ISigner}
- * @interface
- */
-export class ISignerEvm extends ISigner {
-  /**
-   * Whether this signer can derive child signers (i.e. it holds an HD root). Non-derivable
-   * signers (e.g. private-key signers) are bound directly to an account; derivable signers
-   * derive child accounts and keep the root for management only.
-   * @type {boolean}
-   */
-  get isDerivable () {
-    throw new NotImplementedError('isDerivable')
-  }
-
-  /**
-   * The last component index for the derivation path of this signer, when applicable.
-   * @type {number|undefined}
-   */
-  get index () {
-    throw new NotImplementedError('index')
-  }
-
-  /**
-   * The full derivation path if this is a child signer.
-   * @type {string|undefined}
-   */
-  get path () {
-    throw new NotImplementedError('path')
-  }
-
-  /**
-   * The account's address, if available.
-   * @type {string|undefined}
-   */
-  get address () {
-    throw new NotImplementedError('address')
-  }
-
-  /**
-   * The account's key pair.
-   * @type {KeyPair}
-   */
-  get keyPair () {
-    throw new NotImplementedError('keyPair')
-  }
-
-  /**
-   * Derive a child signer from this signer using a relative path (e.g. "0'/0/0").
-   *
-   * @param {string} relPath - The relative BIP-44 path segment.
-   * @returns {Promise<ISignerEvm>} The derived child signer.
-   * @throws {SignerError} If the signer does not support derivation (e.g. private-key signers).
-   */
-  async derive (relPath) {
-    throw new NotImplementedError('derive(relPath)')
-  }
-
-  /**
-   * Returns the account's address.
-   * @returns {Promise<string>}
-   */
-  async getAddress () {
-    throw new NotImplementedError('getAddress()')
-  }
-
-  /**
-   * Sign a plain message.
-   * @param {string} message
-   * @returns {Promise<string>}
-   */
-  async sign (message) {
-    throw new NotImplementedError('sign(message)')
-  }
-
-  /**
-   * Sign a transaction-like object compatible with ethers Transaction.from.
-   * @param {UnsignedEvmTransaction} unsignedTx
-   * @returns {Promise<string>} The serialized signed transaction hex.
-   */
-  async signTransaction (unsignedTx) {
-    throw new NotImplementedError('signTransaction(unsignedTx)')
-  }
-
-  /**
-   * Signs typed data according to EIP-712.
-   *
-   * @param {TypedData} typedData - The typed data to sign.
-   * @returns {Promise<string>} The typed data signature.
-   */
-  async signTypedData ({ domain, types, message }) {
-    throw new NotImplementedError('signTypedData(typedData)')
-  }
-
-  /**
-   * Sign an ERC-7702 authorization tuple.
-   * @param {AuthorizationRequest} auth
-   * @returns {Promise<Authorization>}
-   */
-  async signAuthorization (auth) {
-    throw new NotImplementedError('signAuthorization(auth)')
-  }
-
-  /** Clear any secret material from memory. */
-  dispose () {
-    throw new NotImplementedError('dispose()')
-  }
-}
-
-/**
- * @extends {ISignerEvm}
  * Signer implementation that derives keys from a BIP-39 seed using the BIP-44 Ethereum path.
  * Always holds a derived account (index 0 by default). A root signer also retains the HD root
  * and can derive child signers; a derived child holds only its own account.
+ *
+ * @implements {ISignerEvm}
  */
-export default class SeedSignerEvm extends ISignerEvm {
+export default class SeedSignerEvm {
   /**
    * Create a SeedSignerEvm.
    * Provide either a mnemonic/seed or an existing root via opts.root (for children root is not stored internally)
    *
    * @param {string|Uint8Array|null} seed - BIP-39 mnemonic or seed bytes. Omit when providing `opts.root`.
    * @param {SeedSignerEvmOpts} [opts] - Construction options for root reuse, direct child derivation or path definition (default is index 0).
-     * @throws {Error} If neither a seed nor a root is provided, or if both are provided.
-     * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
+   * @throws {Error} If neither a seed nor a root is provided, or if both are provided.
+   * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
    */
   constructor (seed, opts = {}) {
-    super()
-
     // If a root is provided, do not expect a seed
     if (opts.root && seed) {
       throw new Error('Provide either a seed or a root, not both.')
@@ -205,6 +91,7 @@ export default class SeedSignerEvm extends ISignerEvm {
   /**
    * Whether this signer can derive child signers. True for a root signer (which holds the
    * HD root); false for a derived child, which does not retain the root.
+   *
    * @type {boolean}
    */
   get isDerivable () {
@@ -212,17 +99,18 @@ export default class SeedSignerEvm extends ISignerEvm {
   }
 
   /**
-   * The last component index of the derivation path, if available.
-   * @type {number|undefined}
+   * The last component index of the derivation path.
+   *
+   * @type {number}
    */
   get index () {
-    if (!this._path) return undefined
     return +this._path.split('/').pop()
   }
 
   /**
    * The full derivation path of this signer's account.
-   * @type {string|undefined}
+   *
+   * @type {string}
    */
   get path () {
     return this._path
@@ -230,6 +118,7 @@ export default class SeedSignerEvm extends ISignerEvm {
 
   /**
    * The account's derived address.
+   *
    * @type {string}
    */
   get address () {
@@ -238,6 +127,7 @@ export default class SeedSignerEvm extends ISignerEvm {
 
   /**
    * The account's key pair (private and public key buffers).
+   *
    * @type {KeyPair}
    */
   get keyPair () {
@@ -249,8 +139,9 @@ export default class SeedSignerEvm extends ISignerEvm {
 
   /**
    * Derive a child signer using the provided relative path (e.g. "0'/0/0").
-   * @param {string} relPath
-   * @returns {Promise<SeedSignerEvm>}
+   *
+   * @param {string} relPath - The relative BIP-44 path segment.
+   * @returns {Promise<SeedSignerEvm>} The derived child signer.
    * @throws {Error} If called on a derived child signer, which does not retain the root.
    */
   async derive (relPath) {
@@ -262,28 +153,31 @@ export default class SeedSignerEvm extends ISignerEvm {
 
   /**
    * Returns the account's derived address.
-   * @returns {Promise<string>}
+   *
+   * @returns {Promise<string>} The account's address.
    */
   async getAddress () {
     return this._address
   }
 
   /**
-   * Sign a plain message string.
-   * @param {string} message
-   * @returns {Promise<string>}
+   * Signs a message.
+   *
+   * @param {string} message - The message to sign.
+   * @returns {Promise<string>} The message's signature.
    */
   async sign (message) {
     return this._account.signMessage(message)
   }
 
   /**
-   * Sign a transaction object and return its serialized form.
-   * @param {UnsignedEvmTransaction} unsignedTx
-   * @returns {Promise<string>}
+   * Signs a transaction.
+   *
+   * @param {TransactionLike} tx - The transaction to sign.
+   * @returns {Promise<string>} The signed transaction as a hex string.
    */
-  async signTransaction (unsignedTx) {
-    return this._account.signTransaction(unsignedTx)
+  async signTransaction (tx) {
+    return this._account.signTransaction(tx)
   }
 
   /**
@@ -297,15 +191,18 @@ export default class SeedSignerEvm extends ISignerEvm {
   }
 
   /**
-   * Sign an ERC-7702 authorization tuple.
-   * @param {AuthorizationRequest} auth
-   * @returns {Promise<Authorization>}
+   * Signs an ERC-7702 authorization tuple.
+   *
+   * @param {AuthorizationRequest} auth - The authorization request.
+   * @returns {Promise<Authorization>} The signed authorization.
    */
   async signAuthorization (auth) {
     return this._account.authorizeSync(auth)
   }
 
-  /** Disposes secrets from memory. */
+  /**
+   * Disposes the signer, erasing its secrets from memory.
+   */
   dispose () {
     if (this._account) this._account.dispose()
     this._account = undefined

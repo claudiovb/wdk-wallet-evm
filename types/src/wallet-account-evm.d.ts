@@ -34,17 +34,19 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
     /** @private */
     private _signer;
     /**
-     * The derivation path's index of this account.
+     * The derivation path's index of this account, or undefined if the account's
+     * signer is not bound to a BIP-44 position (e.g. private-key signers).
      *
-     * @type {number}
+     * @type {number | undefined}
      */
-    get index(): number;
+    get index(): number | undefined;
     /**
-     * The derivation path of this account (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)).
+     * The derivation path of this account (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)),
+     * or undefined if the account's signer is not bound to a BIP-44 position (e.g. private-key signers).
      *
-     * @type {string}
+     * @type {string | undefined}
      */
-    get path(): string;
+    get path(): string | undefined;
     /**
      * The account's key pair.
      *
@@ -145,7 +147,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      */
     dispose(): void;
 }
-export type ISignerEvm = import("./signers/seed-signer-evm.js").ISignerEvm;
+export type ISignerEvm = import("./signers/signer-evm.js").ISignerEvm;
 export type HDNodeWallet = import("ethers").HDNodeWallet;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;

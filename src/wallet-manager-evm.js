@@ -14,7 +14,7 @@
 
 'use strict'
 
-import WalletManager from '@tetherto/wdk-wallet'
+import WalletManager, { SignerError } from '@tetherto/wdk-wallet'
 
 import { BrowserProvider, JsonRpcProvider } from 'ethers'
 
@@ -23,7 +23,7 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
 import WalletAccountEvm from './wallet-account-evm.js'
 import SeedSignerEvm from './signers/seed-signer-evm.js'
 
-/** @typedef {import('./signers/seed-signer-evm.js').ISignerEvm} ISignerEvm */
+/** @typedef {import('./signers/signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('ethers').Provider} Provider */
 
 /** @typedef {import("@tetherto/wdk-wallet").FeeRates} FeeRates */
@@ -50,15 +50,26 @@ export default class WalletManagerEvm extends WalletManager {
   static _FEE_RATE_FAST_MULTIPLIER = 200n
 
   /**
-   * Creates a new wallet manager for evm blockchains.
+   * Creates a new wallet manager for evm blockchains from a BIP-39 seed.
    *
-   * Accepts either a BIP-39 seed (string/Uint8Array) for backwards compatibility, or a
-   * pre-built root signer object. The default signer must be derivable (it must be able to
-   * derive child accounts); non-derivable signers (e.g. private-key signers) are not allowed
-   * as the default but may be registered by name via {@link addSigner} - If not adding to your global account managment for using just one non derivable signer create a standalone account.
-   *
-   * @param {string|Uint8Array|ISigner} seedOrSigner - A BIP-39 seed phrase, seed bytes, or a root signer. Root signers must be derivable — non-derivable signers (e.g. private-key signers) can only be registered by name via {@link addSigner}.
+   * @overload
+   * @param {string | Uint8Array} seed - The BIP-39 seed phrase or raw seed bytes.
    * @param {EvmWalletConfig} [config] - The configuration object.
+   * @throws {Error} If the seed phrase is invalid.
+   */
+
+  /**
+   * Creates a new wallet manager for evm blockchains from a default signer.
+   *
+   * The default signer must be derivable (it must be able to derive child accounts);
+   * non-derivable signers (e.g. private-key signers) are not allowed as the default but
+   * may be registered by name via {@link addSigner}. To use a single non-derivable signer
+   * outside of the wallet manager, create a standalone account instead.
+   *
+   * @overload
+   * @param {ISigner} signer - The default signer.
+   * @param {EvmWalletConfig} [config] - The configuration object.
+   * @throws {SignerError} If the default signer does not support account derivation.
    */
   constructor (seedOrSigner, config = {}) {
     let signer = seedOrSigner
@@ -66,7 +77,7 @@ export default class WalletManagerEvm extends WalletManager {
       signer = new SeedSignerEvm(seedOrSigner)
     }
     if (!signer.isDerivable) {
-      throw new Error('The default signer must be derivable. Non-derivable signers (e.g. private-key signers) can only be registered by name via addSigner.')
+      throw new SignerError('The default signer must be derivable. Non-derivable signers (e.g. private-key signers) can only be registered by name via addSigner.')
     }
     super(signer, config)
 
@@ -134,7 +145,7 @@ export default class WalletManagerEvm extends WalletManager {
 
   async getAccount (indexOrSignerName = 0, options = {}) {
     if (typeof indexOrSignerName === 'string') {
-      const key = `${indexOrSignerName}#self`
+      const key = indexOrSignerName
       if (this._accounts[key]) {
         return this._accounts[key]
       }
@@ -163,7 +174,7 @@ export default class WalletManagerEvm extends WalletManager {
    */
   async getAccountByPath (path, options = {}) {
     const { signerName } = options
-    const key = `${signerName ?? ''}:${path}`
+    const key = signerName ? `${signerName}:${path}` : path
     if (this._accounts[key]) {
       return this._accounts[key]
     }

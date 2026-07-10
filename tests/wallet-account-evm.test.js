@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, test, jest } from '@jest/globa
 import * as bip39 from 'bip39'
 
 import { WalletAccountEvm, WalletAccountReadOnlyEvm } from '../index.js'
-import SeedSignerEvm from '../src/signers/seed-signer-evm.js'
 import PrivateKeySignerEvm from '../src/signers/private-key-signer-evm.js'
 
 import TestToken from './artifacts/TestToken.json' with { type: 'json' }
@@ -85,9 +84,7 @@ describe('WalletAccountEvm', () => {
 
     await sendTestTokensTo(ACCOUNT.address, INITIAL_TOKEN_BALANCE)
 
-    const root = new SeedSignerEvm(SEED_PHRASE)
-    const signer = await root.derive("0'/0/0")
-    account = new WalletAccountEvm(signer, { provider: hre.network.provider })
+    account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider: hre.network.provider })
   })
 
   afterEach(async () => {
@@ -135,11 +132,28 @@ describe('WalletAccountEvm', () => {
         .toThrow('invalid path component')
     })
 
-    test('should derive the same account as a manually derived signer', async () => {
-      const seededAccount = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
-      const signerAccount = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+    test('should successfully initialize an account with a signer (signer overload)', async () => {
+      const mockSigner = {
+        address: ACCOUNT.address,
+        index: ACCOUNT.index,
+        path: ACCOUNT.path,
+        keyPair: {
+          privateKey: new Uint8Array(Buffer.from(ACCOUNT.keyPair.privateKey, 'hex')),
+          publicKey: new Uint8Array(Buffer.from(ACCOUNT.keyPair.publicKey, 'hex'))
+        },
+        isDerivable: false,
+        getAddress: async () => ACCOUNT.address,
+        sign: async () => '0xmocksignature',
+        dispose: () => {}
+      }
 
-      expect(await seededAccount.getAddress()).toBe(await signerAccount.getAddress())
+      const account = new WalletAccountEvm(mockSigner)
+
+      expect(await account.getAddress()).toBe(ACCOUNT.address)
+      expect(account.index).toBe(ACCOUNT.index)
+      expect(account.path).toBe(ACCOUNT.path)
+      expect(account.keyPair).toEqual(mockSigner.keyPair)
+      expect(await account.sign('any message')).toBe('0xmocksignature')
     })
   })
 
@@ -228,25 +242,15 @@ describe('WalletAccountEvm', () => {
     const SIGNED_TRANSACTION = '0x02f86e827a6980843b9aca00847735940082520894a460aebce0d3a4becad8ccf9d6d4861296c503bd8203e880c080a0189acf1d3170de712fd346182a77b08ccaa1317cdd13daf386f1405d52148171a04a83f7c7df7f258344e1726ac5b94f53fb415f0e41a58399b5031940b293b9ec'
 
     test('should sign a transaction and return a valid hex string', async () => {
-      const accountWithoutProvider = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+      const accountWithoutProvider = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
 
-      const TRANSACTION = {
-        to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
-        value: 1_000n,
-        gasLimit: 21_000n,
-        maxFeePerGas: 2_000_000_000n,
-        maxPriorityFeePerGas: 1_000_000_000n,
-        nonce: 0,
-        chainId: 31_337n
-      }
-      const SIGNED_TRANSACTION = "0x02f86e827a6980843b9aca00847735940082520894a460aebce0d3a4becad8ccf9d6d4861296c503bd8203e880c080a0189acf1d3170de712fd346182a77b08ccaa1317cdd13daf386f1405d52148171a04a83f7c7df7f258344e1726ac5b94f53fb415f0e41a58399b5031940b293b9ec"
       const signedTx = await accountWithoutProvider.signTransaction(TRANSACTION)
 
       expect(signedTx).toBe(SIGNED_TRANSACTION)
     })
 
     test('should throw if transaction fee exceeds the transaction max fee configuration', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider,
         transactionMaxFee: 0
       })
@@ -256,7 +260,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should not enforce transaction max fee without a provider', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         transactionMaxFee: 0
       })
 
@@ -268,7 +272,7 @@ describe('WalletAccountEvm', () => {
     test('should allow a fee exactly equal to transactionMaxFee', async () => {
       const { fee } = await account.quoteSendTransaction(TRANSACTION)
 
-      const accountAtLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountAtLimit = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider,
         transactionMaxFee: fee
       })
@@ -281,7 +285,7 @@ describe('WalletAccountEvm', () => {
     test('should allow a fee below transactionMaxFee', async () => {
       const { fee } = await account.quoteSendTransaction(TRANSACTION)
 
-      const accountBelowLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountBelowLimit = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider,
         transactionMaxFee: fee + 1n
       })
@@ -407,7 +411,7 @@ describe('WalletAccountEvm', () => {
         value: 1_000
       }
 
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider,
         transactionMaxFee: 0
       })
@@ -424,7 +428,7 @@ describe('WalletAccountEvm', () => {
 
       const { fee } = await account.quoteSendTransaction(TRANSACTION)
 
-      const accountAtLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountAtLimit = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider,
         transactionMaxFee: fee
       })
@@ -442,7 +446,7 @@ describe('WalletAccountEvm', () => {
 
       const { fee } = await account.quoteSendTransaction(TRANSACTION)
 
-      const accountBelowLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountBelowLimit = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider,
         transactionMaxFee: fee + 1n
       })
@@ -453,7 +457,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should throw if the account is not connected to a provider', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
 
       await expect(account.sendTransaction({ }))
         .rejects.toThrow('The wallet must be connected to a provider to send transactions.')
@@ -525,17 +529,14 @@ describe('WalletAccountEvm', () => {
         amount: 100
       }
 
-      const account = new WalletAccountEvm(
-        await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"),
-        { provider: hre.network.provider, transferMaxFee: 0 }
-      )
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider: hre.network.provider, transferMaxFee: 0 })
 
       await expect(account.transfer(TRANSFER))
         .rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
     })
 
     test('should throw if the account is not connected to a provider', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
 
       await expect(account.transfer({ }))
         .rejects.toThrow('The wallet must be connected to a provider to transfer tokens.')
@@ -631,7 +632,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should throw if the account is not connected to a provider', async () => {
-      const accountWithoutProvider = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+      const accountWithoutProvider = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
       const approveOptions = {
         token: testToken.target,
         spender: SPENDER,
@@ -699,7 +700,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should throw if the account is not connected to a provider', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
 
       await expect(account.delegate(delegateContract.target))
         .rejects.toThrow('The wallet must be connected to a provider to delegate.')
@@ -733,7 +734,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should throw if the account is not connected to a provider', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
 
       await expect(account.revokeDelegation())
         .rejects.toThrow('The wallet must be connected to a provider to delegate.')

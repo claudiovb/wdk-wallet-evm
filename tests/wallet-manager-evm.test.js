@@ -16,8 +16,7 @@ describe('WalletManagerEvm', () => {
   let wallet
 
   beforeEach(async () => {
-    const root = new SeedSignerEvm(SEED_PHRASE)
-    wallet = new WalletManagerEvm(root, { provider: hre.network.provider })
+    wallet = new WalletManagerEvm(SEED_PHRASE, { provider: hre.network.provider })
   })
 
   afterEach(() => {
@@ -158,7 +157,7 @@ describe('WalletManagerEvm', () => {
     })
 
     test('should throw if the wallet is not connected to a provider', async () => {
-      const wallet = new WalletManagerEvm(new SeedSignerEvm(SEED_PHRASE))
+      const wallet = new WalletManagerEvm(SEED_PHRASE)
 
       await expect(wallet.getFeeRates())
         .rejects.toThrow('The wallet must be connected to a provider to get fee rates.')

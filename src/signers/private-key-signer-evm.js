@@ -18,29 +18,28 @@ import { BaseWallet } from 'ethers'
 import { SignerError } from '@tetherto/wdk-wallet'
 
 import MemorySafeSigningKey from '../memory-safe/signing-key.js'
-import { ISignerEvm } from './seed-signer-evm.js'
 
-/** @typedef {import('../utils/tx-populator-evm.js').UnsignedEvmTransaction} UnsignedEvmTransaction */
+/** @typedef {import('./signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
+/** @typedef {import('ethers').TransactionLike} TransactionLike */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
 /** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
 
 /**
- * @extends {ISignerEvm}
  * Signer that wraps a raw private key in a memory-safe buffer, exposing a minimal
  * interface for signing messages, transactions and typed data. This signer does
  * not support derivation and always represents a single account.
+ *
+ * @implements {ISignerEvm}
  */
-export default class PrivateKeySignerEvm extends ISignerEvm {
+export default class PrivateKeySignerEvm {
   /**
    * Create a signer from a raw private key.
    *
    * @param {string|Uint8Array} privateKey - Hex string (with/without 0x) or raw key bytes.
    */
   constructor (privateKey) {
-    super()
-
     // Expect a Uint8Array buffer; accept hex string as convenience
     let privateKeyBuffer = privateKey
     if (typeof privateKey === 'string') {
@@ -61,6 +60,7 @@ export default class PrivateKeySignerEvm extends ISignerEvm {
   /**
    * Whether this signer can derive child signers. Always false: a private-key signer is a
    * single standalone account and is bound directly to a wallet account.
+   *
    * @type {boolean}
    */
   get isDerivable () { return false }
@@ -68,23 +68,28 @@ export default class PrivateKeySignerEvm extends ISignerEvm {
   /**
    * The account index. Always undefined for private key signers: a raw key has no
    * BIP-44 position, so reporting an index would be misleading.
+   *
    * @type {number|undefined}
    */
   get index () { return undefined }
 
   /**
    * The derivation path. Always undefined for private key signers.
+   *
    * @type {string|undefined}
    */
   get path () { return this._path }
 
   /**
    * The account's address.
+   *
    * @type {string}
    */
   get address () { return this._address }
+
   /**
    * The account's key pair (private and public key buffers).
+   *
    * @type {KeyPair}
    */
   get keyPair () {
@@ -95,15 +100,21 @@ export default class PrivateKeySignerEvm extends ISignerEvm {
   }
 
   /**
-   * PrivateKeySignerEvm is not a hierarchical signer and cannot derive.
-   * @returns {Promise<never>}
+   * Derive a child signer using a relative path (e.g., "0'/0/0").
+   *
+   * @param {string} relPath - The relative derivation path.
+   * @returns {Promise<never>} Never resolves; private-key signers cannot derive.
    * @throws {SignerError} Always — private-key signers do not support derivation.
    */
-  async derive () {
+  async derive (relPath) {
     throw new SignerError('PrivateKeySignerEvm does not support derivation.')
   }
 
-  /** @returns {Promise<string>} */
+  /**
+   * Returns the account's address.
+   *
+   * @returns {Promise<string>} The account's address.
+   */
   async getAddress () {
     return this._address
   }
@@ -119,13 +130,13 @@ export default class PrivateKeySignerEvm extends ISignerEvm {
   }
 
   /**
-   * Signs a transaction and returns the serialized signed transaction hex.
+   * Signs a transaction.
    *
-   * @param {UnsignedEvmTransaction} unsignedTx - The unsigned transaction object.
-   * @returns {Promise<string>}
+   * @param {TransactionLike} tx - The transaction to sign.
+   * @returns {Promise<string>} The signed transaction as a hex string.
    */
-  async signTransaction (unsignedTx) {
-    return this._wallet.signTransaction(unsignedTx)
+  async signTransaction (tx) {
+    return this._wallet.signTransaction(tx)
   }
 
   /**
@@ -139,15 +150,18 @@ export default class PrivateKeySignerEvm extends ISignerEvm {
   }
 
   /**
-   * Sign an ERC-7702 authorization tuple.
-   * @param {AuthorizationRequest} auth
-   * @returns {Promise<Authorization>}
+   * Signs an ERC-7702 authorization tuple.
+   *
+   * @param {AuthorizationRequest} auth - The authorization request.
+   * @returns {Promise<Authorization>} The signed authorization.
    */
   async signAuthorization (auth) {
     return this._wallet.authorizeSync(auth)
   }
 
-  /** Dispose secrets from memory. */
+  /**
+   * Disposes the signer, erasing its secrets from memory.
+   */
   dispose () {
     if (this._signingKey) this._signingKey.dispose()
     this._signingKey = undefined

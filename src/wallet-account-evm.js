@@ -14,15 +14,14 @@
 
 'use strict'
 
-import { Contract, ZeroAddress } from 'ethers'
+import { Contract, VoidSigner, ZeroAddress } from 'ethers'
 
 import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 
 import SeedSignerEvm from './signers/seed-signer-evm.js'
 import PrivateKeySignerEvm from './signers/private-key-signer-evm.js'
-import { populateTransactionEvm } from './utils/tx-populator-evm.js'
 
-/** @typedef {import('./signers/seed-signer-evm.js').ISignerEvm} ISignerEvm */
+/** @typedef {import('./signers/signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('ethers').HDNodeWallet} HDNodeWallet */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
@@ -90,18 +89,20 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   }
 
   /**
-   * The derivation path's index of this account.
+   * The derivation path's index of this account, or undefined if the account's
+   * signer is not bound to a BIP-44 position (e.g. private-key signers).
    *
-   * @type {number}
+   * @type {number | undefined}
    */
   get index () {
     return this._signer.index
   }
 
   /**
-   * The derivation path of this account (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)).
+   * The derivation path of this account (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)),
+   * or undefined if the account's signer is not bound to a BIP-44 position (e.g. private-key signers).
    *
-   * @type {string}
+   * @type {string | undefined}
    */
   get path () {
     return this._signer.path
@@ -204,9 +205,10 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
       throw new Error('Exceeded maximum fee cost for transaction operation.')
     }
     // Build, sign and broadcast raw transaction using the signer
-    const from = await this.getAddress()
-    const unsignedTx = await populateTransactionEvm(this._provider, from, tx)
-    const signed = await this._signer.signTransaction(unsignedTx)
+    const address = await this.getAddress()
+    const voidSigner = new VoidSigner(address, this._provider)
+    const populated = await voidSigner.populateTransaction(tx)
+    const signed = await this._signer.signTransaction(populated)
     const hash = await this._provider.send('eth_sendRawTransaction', [signed])
     return { hash, fee }
   }
