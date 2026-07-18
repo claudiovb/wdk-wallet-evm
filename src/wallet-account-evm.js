@@ -89,16 +89,6 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   }
 
   /**
-   * The derivation path's index of this account, or null if the account's
-   * signer is not bound to a BIP-44 position (e.g. private-key signers).
-   *
-   * @type {number | null}
-   */
-  get index () {
-    return this._signer.index
-  }
-
-  /**
    * The derivation path of this account (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)),
    * or null if the account's signer is not bound to a BIP-44 position (e.g. private-key signers).
    *
@@ -115,7 +105,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * it's strongly recommended to treat the key pair as a read-only view of the keys. While it's still technically possible to alter their
    * content, client code should never do so.
    *
-   * @type {KeyPair}
+   * @type {KeyPair | null}
    */
   get keyPair () {
     return this._signer.keyPair
@@ -134,8 +124,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   }
 
   /**
-   * Returns the account's address. If it wasn't resolved at construction time (e.g hardware signers), it asks the
-   * underlying signer to resolve it, then caches it locally.
+   * Returns the account's address.
    *
    * @returns {Promise<string>} The account's address.
    */
@@ -290,12 +279,18 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Signs an ERC-7702 authorization tuple.
    *
+   * The chainId and nonce are populated from the provider when not explicitly provided.
+   *
    * @param {AuthorizationRequest} auth - The authorization request.
    * @returns {Promise<Authorization>} The signed authorization.
+   * @throws {Error} If the chainId or nonce are not provided and the wallet is not connected to a provider.
    */
   async signAuthorization (auth) {
     const populated = { ...auth }
-    if (this._provider) {
+    if (populated.chainId == null || populated.nonce == null) {
+      if (!this._provider) {
+        throw new Error('The wallet must be connected to a provider to populate the authorization chainId and nonce. Provide them explicitly to sign offline.')
+      }
       if (populated.chainId == null) {
         const { chainId } = await this._provider.getNetwork()
         populated.chainId = chainId

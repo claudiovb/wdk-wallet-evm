@@ -27,40 +27,12 @@ import { ISigner, NotImplementedError } from '@tetherto/wdk-wallet'
  */
 export class ISignerEvm extends ISigner {
   /**
-   * The last component index of the BIP 0044 derivation path.
-   *
-   * @type {number | null}
-   */
-  get index () {
-    throw new NotImplementedError('index')
-  }
-
-  /**
-   * The BIP 0044 derivation path.
-   *
-   * @type {string | null}
-   */
-  get path () {
-    throw new NotImplementedError('path')
-  }
-
-  /**
    * The account's address, if available.
    *
    * @type {string | undefined}
    */
   get address () {
     throw new NotImplementedError('address')
-  }
-
-  /**
-   * Signs a message.
-   *
-   * @param {string} message - The message to sign.
-   * @returns {Promise<string>} The message's signature.
-   */
-  async sign (message) {
-    throw new NotImplementedError('sign(message)')
   }
 
   /**

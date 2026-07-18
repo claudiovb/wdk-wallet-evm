@@ -61,7 +61,6 @@ describe('PrivateKeySignerEvm', () => {
       expect(signer.isDerivable).toBe(false)
       expect(signer.address).toBe(EXPECTED_ADDRESS)
       expect(signer.path).toBeNull()
-      expect(signer.index).toBeNull()
 
       signer.dispose()
     })

@@ -64,13 +64,6 @@ export default class PrivateKeySignerEvm {
   get isDerivable () { return false }
 
   /**
-   * The last component index of the BIP 0044 derivation path.
-   *
-   * @type {number | null}
-   */
-  get index () { return null }
-
-  /**
    * The BIP 0044 derivation path.
    *
    * @type {string | null}
@@ -100,8 +93,8 @@ export default class PrivateKeySignerEvm {
    * Derive a child signer using a relative path (e.g., "0'/0/0").
    *
    * @param {string} relPath - The relative derivation path.
-   * @returns {Promise<never>} Never resolves; private-key signers cannot derive.
-   * @throws {SignerError} Always — private-key signers do not support derivation.
+   * @returns {Promise<never>} The derived signer.
+   * @throws {SignerError} If the signer does not support derivation.
    */
   async derive (relPath) {
     throw new SignerError('PrivateKeySignerEvm does not support derivation.')

@@ -34,13 +34,6 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
     /** @private */
     private _signer;
     /**
-     * The derivation path's index of this account, or null if the account's
-     * signer is not bound to a BIP-44 position (e.g. private-key signers).
-     *
-     * @type {number | null}
-     */
-    get index(): number | null;
-    /**
      * The derivation path of this account (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)),
      * or null if the account's signer is not bound to a BIP-44 position (e.g. private-key signers).
      *
@@ -54,12 +47,11 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      * it's strongly recommended to treat the key pair as a read-only view of the keys. While it's still technically possible to alter their
      * content, client code should never do so.
      *
-     * @type {KeyPair}
+     * @type {KeyPair | null}
      */
-    get keyPair(): KeyPair;
+    get keyPair(): KeyPair | null;
     /**
-     * Returns the account's address. If it wasn't resolved at construction time (e.g hardware signers), it asks the
-     * underlying signer to resolve it, then caches it locally.
+     * Returns the account's address.
      *
      * @returns {Promise<string>} The account's address.
      */
@@ -121,8 +113,11 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
     /**
      * Signs an ERC-7702 authorization tuple.
      *
+     * The chainId and nonce are populated from the provider when not explicitly provided.
+     *
      * @param {AuthorizationRequest} auth - The authorization request.
      * @returns {Promise<Authorization>} The signed authorization.
+     * @throws {Error} If the chainId or nonce are not provided and the wallet is not connected to a provider.
      */
     signAuthorization(auth: AuthorizationRequest): Promise<Authorization>;
     /**

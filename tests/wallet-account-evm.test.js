@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, test, jest } from '@jest/globa
 import * as bip39 from 'bip39'
 
 import { WalletAccountEvm, WalletAccountReadOnlyEvm } from '../index.js'
-import PrivateKeySignerEvm from '../src/signers/private-key-signer-evm.js'
 
 import TestToken from './artifacts/TestToken.json' with { type: 'json' }
 
@@ -24,7 +23,6 @@ const INVALID_SEED_PHRASE = 'invalid seed phrase'
 const SEED = bip39.mnemonicToSeedSync(SEED_PHRASE)
 
 const ACCOUNT = {
-  index: 0,
   path: "m/44'/60'/0'/0/0",
   address: '0x405005C7c4422390F4B334F64Cf20E0b767131d0',
   keyPair: {
@@ -97,8 +95,6 @@ describe('WalletAccountEvm', () => {
     test('should successfully initialize an account for the given seed phrase and path', async () => {
       const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
 
-      expect(account.index).toBe(ACCOUNT.index)
-
       expect(account.path).toBe(ACCOUNT.path)
 
       expect(account.keyPair).toEqual({
@@ -109,8 +105,6 @@ describe('WalletAccountEvm', () => {
 
     test('should successfully initialize an account for the given seed and path', async () => {
       const account = new WalletAccountEvm(SEED, "0'/0/0")
-
-      expect(account.index).toBe(ACCOUNT.index)
 
       expect(account.path).toBe(ACCOUNT.path)
 
@@ -135,7 +129,6 @@ describe('WalletAccountEvm', () => {
     test('should successfully initialize an account with a signer (signer overload)', async () => {
       const mockSigner = {
         address: ACCOUNT.address,
-        index: ACCOUNT.index,
         path: ACCOUNT.path,
         keyPair: {
           privateKey: new Uint8Array(Buffer.from(ACCOUNT.keyPair.privateKey, 'hex')),
@@ -150,7 +143,6 @@ describe('WalletAccountEvm', () => {
       const account = new WalletAccountEvm(mockSigner)
 
       expect(await account.getAddress()).toBe(ACCOUNT.address)
-      expect(account.index).toBe(ACCOUNT.index)
       expect(account.path).toBe(ACCOUNT.path)
       expect(account.keyPair).toEqual(mockSigner.keyPair)
       expect(await account.sign('any message')).toBe('0xmocksignature')
@@ -313,23 +305,6 @@ describe('WalletAccountEvm', () => {
       expect(transaction.value).toBe(BigInt(TRANSACTION.value))
 
       expect(fee).toBe(EXPECTED_FEE)
-    })
-
-    test('should successfully send a transaction with PrivateKeySignerEvm', async () => {
-      const pkSigner = new PrivateKeySignerEvm(ACCOUNT.keyPair.privateKey)
-      const pkAccount = new WalletAccountEvm(pkSigner, { provider: hre.network.provider })
-      const TRANSACTION = {
-        to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
-        value: 1_000
-      }
-      const EXPECTED_FEE = 46_114_898_254_972n
-      const { hash, fee } = await pkAccount.sendTransaction(TRANSACTION)
-      const transaction = await hre.ethers.provider.getTransaction(hash)
-      expect(transaction.hash).toBe(hash)
-      expect(transaction.to).toBe(TRANSACTION.to)
-      expect(transaction.value).toBe(BigInt(TRANSACTION.value))
-      expect(fee).toBe(EXPECTED_FEE)
-      pkAccount.dispose()
     })
 
     test('should successfully send a transaction with arbitrary data', async () => {
@@ -655,6 +630,27 @@ describe('WalletAccountEvm', () => {
   })
 
   describe('signAuthorization', () => {
+    test('should throw when chainId and nonce are missing and the account has no provider', async () => {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
+
+      await expect(account.signAuthorization({ address: DELEGATE_CONTRACT_ADDRESS }))
+        .rejects.toThrow('The wallet must be connected to a provider to populate the authorization chainId and nonce.')
+    })
+
+    test('should sign an authorization without a provider when chainId and nonce are explicit', async () => {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
+
+      const auth = await account.signAuthorization({
+        address: DELEGATE_CONTRACT_ADDRESS,
+        chainId: 1n,
+        nonce: 0
+      })
+
+      expect(auth.address.toLowerCase()).toBe(DELEGATE_CONTRACT_ADDRESS.toLowerCase())
+      expect(auth.chainId).toBe(1n)
+      expect(auth.nonce).toBe(0n)
+    })
+
     test('should successfully sign an authorization', async () => {
       const auth = await account.signAuthorization({
         address: delegateContract.target

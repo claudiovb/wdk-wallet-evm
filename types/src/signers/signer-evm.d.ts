@@ -5,43 +5,11 @@
  */
 export class ISignerEvm extends ISigner {
     /**
-     * Whether the signer supports account derivation via {@link derive}.
-     *
-     * @type {boolean}
-     */
-    get isDerivable(): boolean;
-    /**
-     * The signer's key pair, or null if the signer does not allow retrieving
-     * key material (e.g. hardware signers).
-     *
-     * @type {KeyPair | null}
-     */
-    get keyPair(): KeyPair | null;
-    /**
-     * The last component index of the BIP 0044 derivation path.
-     *
-     * @type {number | null}
-     */
-    get index(): number | null;
-    /**
-     * The BIP 0044 derivation path.
-     *
-     * @type {string | null}
-     */
-    get path(): string | null;
-    /**
      * The account's address, if available.
      *
      * @type {string | undefined}
      */
     get address(): string | undefined;
-    /**
-     * Signs a message.
-     *
-     * @param {string} message - The message to sign.
-     * @returns {Promise<string>} The message's signature.
-     */
-    sign(message: string): Promise<string>;
     /**
      * Signs a transaction.
      *
@@ -64,7 +32,6 @@ export class ISignerEvm extends ISigner {
      */
     signAuthorization(auth: AuthorizationRequest): Promise<Authorization>;
 }
-export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
 export type TransactionLike = import("ethers").TransactionLike;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;

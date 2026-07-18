@@ -47,7 +47,6 @@ const DEFAULT_ACCOUNT_PATH = "0'/0/0"
 export default class SeedSignerEvm {
   /**
    * Create a SeedSignerEvm.
-   * Provide either a mnemonic/seed or an existing root via opts.root (for children root is not stored internally)
    *
    * @param {string|Uint8Array|null} seed - BIP-39 mnemonic or seed bytes. Omit when providing `opts.root`.
    * @param {SeedSignerEvmOpts} [opts] - Construction options for root reuse, direct child derivation or path definition (default is index 0).
@@ -96,15 +95,6 @@ export default class SeedSignerEvm {
    */
   get isDerivable () {
     return Boolean(this._root)
-  }
-
-  /**
-   * The last component index of the BIP 0044 derivation path.
-   *
-   * @type {number}
-   */
-  get index () {
-    return +this._path.split('/').pop()
   }
 
   /**

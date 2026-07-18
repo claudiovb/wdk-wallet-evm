@@ -5,6 +5,7 @@ import { ContractFactory } from 'ethers'
 import { describe, expect, test, beforeEach, afterEach } from '@jest/globals'
 
 import WalletManagerEvm from '../../index.js'
+import PrivateKeySignerEvm from '../../src/signers/private-key-signer-evm.js'
 
 import TestToken from './../artifacts/TestToken.json' with { type: 'json' }
 
@@ -305,6 +306,29 @@ describe('@tetherto/wdk-wallet-evm', () => {
 
     await expect(account.transfer(TRANSFER))
       .rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
+  })
+
+  test('should initialize an account with a non-derivable signer and send a transaction', async () => {
+    const pkSigner = new PrivateKeySignerEvm(ACCOUNT_0.keyPair.privateKey)
+    wallet.addSigner('imported', pkSigner)
+
+    const account = await wallet.getAccount('imported')
+
+    expect(await account.getAddress()).toBe(ACCOUNT_0.address)
+
+    const TRANSACTION = {
+      to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+      value: 1_000
+    }
+
+    const { hash, fee } = await account.sendTransaction(TRANSACTION)
+
+    const transaction = await hre.ethers.provider.getTransaction(hash)
+
+    expect(transaction.hash).toBe(hash)
+    expect(transaction.to).toBe(TRANSACTION.to)
+    expect(transaction.value).toBe(BigInt(TRANSACTION.value))
+    expect(typeof fee).toBe('bigint')
   })
 
   test('should sign a transaction, then broadcast manually', async () => {

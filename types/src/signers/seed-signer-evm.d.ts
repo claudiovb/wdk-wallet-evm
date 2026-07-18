@@ -8,7 +8,6 @@
 export default class SeedSignerEvm implements ISignerEvm {
     /**
      * Create a SeedSignerEvm.
-     * Provide either a mnemonic/seed or an existing root via opts.root
      *
      * @param {string|Uint8Array|null} seed - BIP-39 mnemonic or seed bytes. Omit when providing `opts.root`.
      * @param {SeedSignerEvmOpts} [opts] - Construction options for root reuse, direct child derivation or path definition (default is index 0).
@@ -31,12 +30,6 @@ export default class SeedSignerEvm implements ISignerEvm {
      * @type {boolean}
      */
     get isDerivable(): boolean;
-    /**
-     * The last component index of the BIP 0044 derivation path.
-     *
-     * @type {number}
-     */
-    get index(): number;
     /**
      * The BIP 0044 derivation path.
      *

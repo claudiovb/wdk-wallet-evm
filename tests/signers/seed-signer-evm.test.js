@@ -65,7 +65,6 @@ describe('SeedSignerEvm', () => {
       expect(signer.isDerivable).toBe(true)
       expect(signer.address).toBe(EXPECTED_ADDRESS)
       expect(signer.path).toBe("m/44'/60'/0'/0/0")
-      expect(signer.index).toBe(0)
 
       signer.dispose()
     })
@@ -120,7 +119,6 @@ describe('SeedSignerEvm', () => {
       expect(child.isDerivable).toBe(false)
       expect(child.address).toBe(EXPECTED_ADDRESS)
       expect(child.path).toBe("m/44'/60'/0'/0/0")
-      expect(child.index).toBe(0)
       expect(Buffer.from(child.keyPair.privateKey).toString('hex')).toBe(EXPECTED_PRIVATE_KEY)
       expect(Buffer.from(child.keyPair.publicKey).toString('hex')).toBe(EXPECTED_PUBLIC_KEY)
 
