@@ -53,8 +53,6 @@ export default class PrivateKeySignerEvm {
     this._wallet = new BaseWallet(this._signingKey, null)
     /** @private */
     this._address = this._wallet.address
-    /** @private */
-    this._path = undefined
   }
 
   /**
@@ -66,19 +64,18 @@ export default class PrivateKeySignerEvm {
   get isDerivable () { return false }
 
   /**
-   * The account index. Always undefined for private key signers: a raw key has no
-   * BIP-44 position, so reporting an index would be misleading.
+   * The last component index of the BIP 0044 derivation path.
    *
-   * @type {number|undefined}
+   * @type {number | null}
    */
-  get index () { return undefined }
+  get index () { return null }
 
   /**
-   * The derivation path. Always undefined for private key signers.
+   * The BIP 0044 derivation path.
    *
-   * @type {string|undefined}
+   * @type {string | null}
    */
-  get path () { return this._path }
+  get path () { return null }
 
   /**
    * The account's address.

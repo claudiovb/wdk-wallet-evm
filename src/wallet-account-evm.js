@@ -89,10 +89,10 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   }
 
   /**
-   * The derivation path's index of this account, or undefined if the account's
+   * The derivation path's index of this account, or null if the account's
    * signer is not bound to a BIP-44 position (e.g. private-key signers).
    *
-   * @type {number | undefined}
+   * @type {number | null}
    */
   get index () {
     return this._signer.index
@@ -100,9 +100,9 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
 
   /**
    * The derivation path of this account (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)),
-   * or undefined if the account's signer is not bound to a BIP-44 position (e.g. private-key signers).
+   * or null if the account's signer is not bound to a BIP-44 position (e.g. private-key signers).
    *
-   * @type {string | undefined}
+   * @type {string | null}
    */
   get path () {
     return this._signer.path

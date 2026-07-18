@@ -59,20 +59,6 @@ const EXPECTED_TYPED_DATA_SIGNATURE = '0xd5d54d9a7fe501ab5dc1532a443a4f70bc8b6ad
 
 describe('SeedSignerEvm', () => {
   describe('constructor', () => {
-    test('should throw if the seed phrase is invalid', () => {
-      expect(() => { new SeedSignerEvm('invalid seed phrase') }) // eslint-disable-line no-new
-        .toThrow('The seed phrase is invalid.')
-    })
-
-    test('should throw if both seed and root are provided', async () => {
-      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
-      const child = await root.derive("0'/0/0")
-      expect(() => { new SeedSignerEvm(VALID_SEED_PHRASE, { root: child }) }) // eslint-disable-line no-new
-        .toThrow('Provide either a seed or a root, not both.')
-      child.dispose()
-      root.dispose()
-    })
-
     test('should create a signer with the account at index 0 by default', () => {
       const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
 
@@ -99,6 +85,20 @@ describe('SeedSignerEvm', () => {
 
       signer.dispose()
     })
+
+    test('should throw if the seed phrase is invalid', () => {
+      expect(() => { new SeedSignerEvm('invalid seed phrase') }) // eslint-disable-line no-new
+        .toThrow('The seed phrase is invalid.')
+    })
+
+    test('should throw if both seed and root are provided', async () => {
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const child = await root.derive("0'/0/0")
+      expect(() => { new SeedSignerEvm(VALID_SEED_PHRASE, { root: child }) }) // eslint-disable-line no-new
+        .toThrow('Provide either a seed or a root, not both.')
+      child.dispose()
+      root.dispose()
+    })
   })
 
   describe('keyPair', () => {
@@ -113,15 +113,6 @@ describe('SeedSignerEvm', () => {
   })
 
   describe('derive', () => {
-    test('should throw if the path is invalid', async () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
-
-      await expect(signer.derive("a'/b/c"))
-        .rejects.toThrow('invalid path component')
-
-      signer.dispose()
-    })
-
     test('should derive a child signer with the correct address and path', async () => {
       const root = new SeedSignerEvm(VALID_SEED_PHRASE)
       const child = await root.derive("0'/0/0")
@@ -135,6 +126,15 @@ describe('SeedSignerEvm', () => {
 
       child.dispose()
       root.dispose()
+    })
+
+    test('should throw if the path is invalid', async () => {
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
+
+      await expect(signer.derive("a'/b/c"))
+        .rejects.toThrow('invalid path component')
+
+      signer.dispose()
     })
 
     test('should throw when deriving from a disposed signer', async () => {

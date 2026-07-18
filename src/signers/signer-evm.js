@@ -23,23 +23,22 @@ import { ISigner, NotImplementedError } from '@tetherto/wdk-wallet'
 /**
  * Interface for EVM signers, extending the base `ISigner` from `@tetherto/wdk-wallet`.
  *
- * @extends {ISigner}
  * @interface
  */
 export class ISignerEvm extends ISigner {
   /**
-   * The last component index for the derivation path of this signer, when applicable.
+   * The last component index of the BIP 0044 derivation path.
    *
-   * @type {number | undefined}
+   * @type {number | null}
    */
   get index () {
     throw new NotImplementedError('index')
   }
 
   /**
-   * The full derivation path of this signer's account, when applicable.
+   * The BIP 0044 derivation path.
    *
-   * @type {string | undefined}
+   * @type {string | null}
    */
   get path () {
     throw new NotImplementedError('path')

@@ -99,7 +99,7 @@ export default class SeedSignerEvm {
   }
 
   /**
-   * The last component index of the derivation path.
+   * The last component index of the BIP 0044 derivation path.
    *
    * @type {number}
    */
@@ -108,7 +108,7 @@ export default class SeedSignerEvm {
   }
 
   /**
-   * The full derivation path of this signer's account.
+   * The BIP 0044 derivation path.
    *
    * @type {string}
    */

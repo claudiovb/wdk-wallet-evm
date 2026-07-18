@@ -18,8 +18,6 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
     private _wallet;
     /** @private */
     private _address;
-    /** @private */
-    private _path;
     /**
      * Whether this signer can derive child signers. Always false: a private-key signer is a
      * single standalone account and is bound directly to a wallet account.
@@ -28,18 +26,17 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
      */
     get isDerivable(): boolean;
     /**
-     * The account index. Always undefined for private key signers: a raw key has no
-     * BIP-44 position, so reporting an index would be misleading.
+     * The last component index of the BIP 0044 derivation path.
      *
-     * @type {number|undefined}
+     * @type {number | null}
      */
-    get index(): number | undefined;
+    get index(): number | null;
     /**
-     * The derivation path. Always undefined for private key signers.
+     * The BIP 0044 derivation path.
      *
-     * @type {string|undefined}
+     * @type {string | null}
      */
-    get path(): string | undefined;
+    get path(): string | null;
     /**
      * The account's address.
      *

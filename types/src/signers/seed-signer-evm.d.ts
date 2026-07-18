@@ -32,13 +32,13 @@ export default class SeedSignerEvm implements ISignerEvm {
      */
     get isDerivable(): boolean;
     /**
-     * The last component index of the derivation path.
+     * The last component index of the BIP 0044 derivation path.
      *
      * @type {number}
      */
     get index(): number;
     /**
-     * The full derivation path of this signer's account.
+     * The BIP 0044 derivation path.
      *
      * @type {string}
      */
