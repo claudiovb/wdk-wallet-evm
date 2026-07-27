@@ -3,6 +3,8 @@ import { ContractFactory, HDNodeWallet, JsonRpcProvider, Mnemonic } from 'ethers
 import { describe, expect, test, beforeEach, afterEach, afterAll } from '@jest/globals'
 
 import WalletManagerEvm from '../../index.js'
+import SeedSignerEvm from '../../src/signers/seed-signer-evm.js'
+
 import PrivateKeySignerEvm from '../../src/signers/private-key-signer-evm.js'
 
 import TestToken from './../artifacts/TestToken.json' with { type: 'json' }
@@ -271,7 +273,7 @@ describe('@tetherto/wdk-wallet-evm', () => {
 
     const { hash, fee } = await account.sendTransaction(TRANSACTION)
 
-    const transaction = await hre.ethers.provider.getTransaction(hash)
+    const transaction = await provider.getTransaction(hash)
 
     expect(transaction.hash).toBe(hash)
     expect(transaction.to).toBe(TRANSACTION.to)
