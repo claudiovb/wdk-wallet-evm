@@ -1,6 +1,4 @@
-import hre from 'hardhat'
-
-import { afterEach, beforeEach, describe, expect, test } from '@jest/globals'
+import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
 import WalletManagerEvm, { WalletAccountEvm } from '../index.js'
 import SeedSignerEvm from '../src/signers/seed-signer-evm.js'
@@ -12,11 +10,47 @@ const SEED_PHRASE = 'cook voyage document eight skate token alien guide drink un
 const PRIVATE_KEY = '260905feebf1ec684f36f1599128b85f3a26c2b817f2065a2fc278398449c41f'
 const PRIVATE_KEY_ADDRESS = '0x405005C7c4422390F4B334F64Cf20E0b767131d0'
 
+const DUMMY_BLOCK = {
+  number: '0x1',
+  hash: '0x' + '11'.repeat(32),
+  parentHash: '0x' + '00'.repeat(32),
+  timestamp: '0x64',
+  nonce: '0x0000000000000000',
+  difficulty: '0x0',
+  gasLimit: '0x1c9c380',
+  gasUsed: '0x0',
+  miner: '0x0000000000000000000000000000000000000000',
+  extraData: '0x',
+  baseFeePerGas: '0x3b9aca00',
+  transactions: []
+}
+
+function createProvider () {
+  const handlers = {
+    eth_chainId: () => '0x1',
+    net_version: () => '1',
+    eth_gasPrice: () => '0x3b9aca00',
+    eth_maxPriorityFeePerGas: () => '0x3b9aca00',
+    eth_getBlockByNumber: () => DUMMY_BLOCK,
+    eth_estimateGas: () => '0x5208',
+    eth_getTransactionCount: () => '0x0'
+  }
+
+  return {
+    request: jest.fn(async ({ method, params }) => {
+      const handler = handlers[method]
+      if (!handler) throw new Error(`Unexpected rpc method: ${method}`)
+      return handler(params)
+    })
+  }
+}
+
 describe('WalletManagerEvm', () => {
   let wallet
 
   beforeEach(async () => {
-    wallet = new WalletManagerEvm(SEED_PHRASE, { provider: hre.network.provider })
+    const root = new SeedSignerEvm(SEED_PHRASE)
+    wallet = new WalletManagerEvm(root, { provider: createProvider() })
   })
 
   afterEach(() => {
@@ -147,8 +181,46 @@ describe('WalletManagerEvm', () => {
     })
   })
 
+  describe('dispose', () => {
+    test('should dispose the wallet and erase the private keys of the accounts', async () => {
+      const account0 = await wallet.getAccount(0)
+
+      const account1 = await wallet.getAccount(1)
+
+      wallet.dispose()
+
+      const MESSAGE = 'Hello, world!'
+
+      const TRANSACTION = {
+        to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+        value: 1_000
+      }
+
+      const TRANSFER = {
+        token: '0x4CC1D60C268B68a7019034E6dE7Fb05d82d827E0',
+        recipient: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+        amount: 100
+      }
+
+      for (const account of [account0, account1]) {
+        expect(account.keyPair.privateKey).toBe(null)
+
+        // Once disposed, the underlying signer is cleared, so any signing operation
+        // fails when it reaches the now-undefined signer rather than for some other reason.
+        await expect(account.sign(MESSAGE))
+          .rejects.toThrow(/Cannot read properties of undefined \(reading 'signMessage'\)/)
+        await expect(account.sendTransaction(TRANSACTION))
+          .rejects.toThrow(/Cannot read properties of undefined \(reading 'signTransaction'\)/)
+        await expect(account.transfer(TRANSFER))
+          .rejects.toThrow(/Cannot read properties of undefined \(reading 'signTransaction'\)/)
+      }
+    })
+  })
+
   describe('getFeeRates', () => {
     test('should return the correct fee rates', async () => {
+      // maxFeePerGas = 2 * baseFee (1 gwei) + priorityFee (1 gwei) = 3 gwei;
+      // normal is 110% and fast 200% of that.
       const feeRates = await wallet.getFeeRates()
 
       expect(feeRates.normal).toBe(3_300_000_000n)
@@ -161,6 +233,32 @@ describe('WalletManagerEvm', () => {
 
       await expect(wallet.getFeeRates())
         .rejects.toThrow('The wallet must be connected to a provider to get fee rates.')
+    })
+
+    test('should throw if the provider does not return any fee data', async () => {
+      // A pre-EIP-1559 block (no baseFeePerGas) makes maxFeePerGas resolve to null, and the
+      // missing eth_gasPrice handler makes gasPrice resolve to null.
+      const legacyBlock = { ...DUMMY_BLOCK }
+      delete legacyBlock.baseFeePerGas
+
+      const handlers = {
+        eth_chainId: () => '0x1',
+        net_version: () => '1',
+        eth_getBlockByNumber: () => legacyBlock
+      }
+
+      const provider = {
+        request: jest.fn(async ({ method }) => {
+          const handler = handlers[method]
+          if (!handler) throw new Error(`Unexpected rpc method: ${method}`)
+          return handler()
+        })
+      }
+
+      const wallet = new WalletManagerEvm(new SeedSignerEvm(SEED_PHRASE), { provider })
+
+      await expect(wallet.getFeeRates())
+        .rejects.toThrow()
     })
   })
 })

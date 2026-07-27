@@ -14,7 +14,7 @@
 
 'use strict'
 
-import { Contract, VoidSigner, ZeroAddress } from 'ethers'
+import { Contract, VoidSigner, Transaction, ZeroAddress } from 'ethers'
 
 import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 
@@ -49,7 +49,7 @@ const USDT_MAINNET_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 
 const DELEGATION_TX_GAS_LIMIT = 100_000
 
-/** @implements {IWalletAccount} */
+/** @implements {IWalletAccount<string>} */
 export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Creates a new evm wallet account from a BIP-39 seed, deriving the account's key at the
@@ -181,7 +181,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Sends a transaction.
    *
-   * @param {EvmTransaction} tx - The transaction.
+   * @param {EvmTransaction | string} tx - The transaction.
    * @returns {Promise<TransactionResult>} The transaction's result.
    * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
    */
@@ -200,6 +200,36 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
     const signed = await this._signer.signTransaction(populated)
     const hash = await this._provider.send('eth_sendRawTransaction', [signed])
     return { hash, fee }
+  }
+
+  /**
+   * Quotes the costs of a send transaction operation.
+   *
+   * @param {EvmTransaction | string} tx - The transaction.
+   * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+   */
+  async quoteSendTransaction (tx) {
+    if (typeof tx === 'string') {
+      if (!this._provider) {
+        throw new Error('The wallet must be connected to a provider to quote send transaction operations.')
+      }
+
+      const { from, to, value, data, gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas, type, nonce, chainId, authorizationList } = Transaction.from(tx)
+
+      const transaction = { from, to, value, data, gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas, type, nonce, chainId, authorizationList }
+
+      const gas = transaction.authorizationList
+        ? await this._estimateGasWithAuthList(transaction)
+        : await this._provider.estimateGas(transaction)
+
+      const fees = await this._provider.getFeeData()
+
+      const feeRate = fees.maxFeePerGas || fees.gasPrice
+
+      return { fee: gas * feeRate }
+    }
+
+    return await super.quoteSendTransaction(tx)
   }
 
   /**
