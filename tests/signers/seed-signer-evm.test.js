@@ -77,8 +77,8 @@ describe('SeedSignerEvm', () => {
       signer.dispose()
     })
 
-    test('should derive the same address when path is provided via constructor opts', () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, { path: "0'/0/0" })
+    test('should derive the same address when path is provided via constructor', () => {
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "0'/0/0")
 
       expect(signer.address).toBe(EXPECTED_ADDRESS)
 
@@ -90,13 +90,9 @@ describe('SeedSignerEvm', () => {
         .toThrow('The seed phrase is invalid.')
     })
 
-    test('should throw if both seed and root are provided', async () => {
-      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
-      const child = await root.derive("0'/0/0")
-      expect(() => { new SeedSignerEvm(VALID_SEED_PHRASE, { root: child }) }) // eslint-disable-line no-new
-        .toThrow('Provide either a seed or a root, not both.')
-      child.dispose()
-      root.dispose()
+    test('should throw if no seed is provided', () => {
+      expect(() => { new SeedSignerEvm() }) // eslint-disable-line no-new
+        .toThrow('Seed is required.')
     })
   })
 

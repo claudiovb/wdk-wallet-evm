@@ -71,7 +71,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
 
   constructor (seedOrSigner, pathOrConfig = {}, config = {}) {
     const [signer, configuration] = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
-      ? [new SeedSignerEvm(seedOrSigner, { path: pathOrConfig, isChild: true }), config]
+      ? [new SeedSignerEvm(seedOrSigner, pathOrConfig), config]
       : [seedOrSigner, pathOrConfig]
 
     super(signer.address, configuration)

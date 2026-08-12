@@ -31,60 +31,29 @@ const DEFAULT_ACCOUNT_PATH = "0'/0/0"
 /** @typedef {import('../memory-safe/hd-node-wallet.js').default} MemorySafeHDNodeWallet */
 
 /**
- * @typedef {Object} SeedSignerEvmOpts
- * @property {MemorySafeHDNodeWallet} [root] - An existing HD node wallet root to derive from.
- * @property {string} [path] - Relative BIP-44 path segment (e.g. "0'/0/0"). Defaults to the account at index 0.
- * @property {boolean} [isChild] - When true, the signer is a derived child and does not retain the root.
- */
-
-/**
  * Signer implementation that derives keys from a BIP-39 seed using the BIP-44 Ethereum path.
- * Always holds a derived account (index 0 by default). A root signer also retains the HD root
- * and can derive child signers; a derived child holds only its own account.
+ * Always holds a derived account (index 0 by default). A signer created from a seed also
+ * retains the HD root and can derive child signers; a derived child holds only its own
+ * account and cannot itself derive further.
  *
  * @implements {ISignerEvm}
  */
 export default class SeedSignerEvm {
   /**
-   * Create a SeedSignerEvm.
+   * Create a SeedSignerEvm from a BIP-39 seed.
    *
-   * @param {string|Uint8Array|null} seed - BIP-39 mnemonic or seed bytes. Omit when providing `opts.root`.
-   * @param {SeedSignerEvmOpts} [opts] - Construction options for root reuse, direct child derivation or path definition (default is index 0).
-   * @throws {Error} If neither a seed nor a root is provided, or if both are provided.
+   * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
+   * @param {string} [path] - Relative BIP-44 path segment (e.g. "0'/0/0"). Defaults to the account at index 0.
+   * @throws {Error} If no seed is provided.
    * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
    */
-  constructor (seed, opts = {}) {
-    // If a root is provided, do not expect a seed
-    if (opts.root && seed) {
-      throw new Error('Provide either a seed or a root, not both.')
+  constructor (seed, path = DEFAULT_ACCOUNT_PATH) {
+    if (!seed) {
+      throw new Error('Seed is required.')
     }
 
-    if (!opts.root && !seed) {
-      throw new Error('Seed or root is required.')
-    }
-
-    if (typeof seed === 'string') {
-      if (!bip39.validateMnemonic(seed)) {
-        throw new Error('The seed phrase is invalid.')
-      }
-      seed = bip39.mnemonicToSeedSync(seed)
-    }
-
-    const root = opts.root || (seed ? MemorySafeHDNodeWallet.fromSeed(seed) : undefined)
-
-    const fullPath = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${opts.path || DEFAULT_ACCOUNT_PATH}`
-    const account = root.derivePath(fullPath)
-
-    if (opts.isChild && !opts.root) root.dispose()
-
-    /** @private */
-    this._account = account
-    /** @private */
-    this._address = account.address
-    /** @private */
-    this._path = fullPath
-    /** @private */
-    this._root = opts.isChild ? undefined : root
+    const root = MemorySafeHDNodeWallet.fromSeed(SeedSignerEvm._normalizeSeed(seed))
+    SeedSignerEvm._init(this, root, path)
   }
 
   /**
@@ -138,7 +107,9 @@ export default class SeedSignerEvm {
     if (!this._root) {
       throw new Error('Cannot derive: this signer has no root (it is a derived child or has been disposed).')
     }
-    return new SeedSignerEvm(null, { root: this._root, path: relPath, isChild: true })
+    const signer = Object.create(SeedSignerEvm.prototype)
+    SeedSignerEvm._init(signer, this._root, relPath, false)
+    return signer
   }
 
   /**
@@ -198,5 +169,23 @@ export default class SeedSignerEvm {
     this._account = undefined
     if (this._root) this._root.dispose()
     this._root = undefined
+  }
+
+  /** @private */
+  static _normalizeSeed (seed) {
+    if (typeof seed !== 'string') return seed
+    if (!bip39.validateMnemonic(seed)) {
+      throw new Error('The seed phrase is invalid.')
+    }
+    return bip39.mnemonicToSeedSync(seed)
+  }
+
+  /** @private */
+  static _init (signer, root, path, retainRoot = true) {
+    const fullPath = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${path}`
+    signer._account = root.derivePath(fullPath)
+    signer._address = signer._account.address
+    signer._path = fullPath
+    signer._root = retainRoot ? root : undefined
   }
 }

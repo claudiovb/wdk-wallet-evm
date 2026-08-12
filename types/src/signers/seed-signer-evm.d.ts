@@ -1,20 +1,25 @@
 /**
  * Signer implementation that derives keys from a BIP-39 seed using the BIP-44 Ethereum path.
- * Always holds a derived account (index 0 by default). A root signer also retains the HD root
- * and can derive child signers; a derived child holds only its own account.
+ * Always holds a derived account (index 0 by default). A signer created from a seed also
+ * retains the HD root and can derive child signers; a derived child holds only its own
+ * account and cannot itself derive further.
  *
  * @implements {ISignerEvm}
  */
 export default class SeedSignerEvm implements ISignerEvm {
+    /** @private */
+    private static _normalizeSeed;
+    /** @private */
+    private static _init;
     /**
-     * Create a SeedSignerEvm.
+     * Create a SeedSignerEvm from a BIP-39 seed.
      *
-     * @param {string|Uint8Array|null} seed - BIP-39 mnemonic or seed bytes. Omit when providing `opts.root`.
-     * @param {SeedSignerEvmOpts} [opts] - Construction options for root reuse, direct child derivation or path definition (default is index 0).
-     * @throws {Error} If neither a seed nor a root is provided, or if both are provided.
+     * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
+     * @param {string} [path] - Relative BIP-44 path segment (e.g. "0'/0/0"). Defaults to the account at index 0.
+     * @throws {Error} If no seed is provided.
      * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
      */
-    constructor(seed: string | Uint8Array | null, opts?: SeedSignerEvmOpts);
+    constructor(seed: string | Uint8Array, path?: string);
     /** @private */
     private _account;
     /** @private */
@@ -24,8 +29,8 @@ export default class SeedSignerEvm implements ISignerEvm {
     /** @private */
     private _root;
     /**
-     * Whether this signer can derive child signers. True for a root signer (which holds the
-     * HD root); false for a derived child, which does not retain the root.
+     * Whether this signer can derive child signers. True for a signer created from a seed
+     * (which retains the HD root); false for a derived child, which does not retain the root.
      *
      * @type {boolean}
      */
@@ -95,20 +100,6 @@ export default class SeedSignerEvm implements ISignerEvm {
      */
     dispose(): void;
 }
-export type SeedSignerEvmOpts = {
-    /**
-     * An existing HD node wallet root to derive from.
-     */
-    root?: MemorySafeHDNodeWallet;
-    /**
-     * Relative BIP-44 path segment (e.g. "0'/0/0"). Defaults to the account at index 0.
-     */
-    path?: string;
-    /**
-     * When true, the signer is a derived child and does not retain the root.
-     */
-    isChild?: boolean;
-};
 /**
  * Memory-safe BIP-32 HD node (implemented by the internal src/memory-safe/hd-node-wallet.js)
  */

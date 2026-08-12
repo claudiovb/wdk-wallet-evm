@@ -143,7 +143,7 @@ describe('WalletManagerEvm', () => {
     })
 
     test('should mirror the registered signer\'s own (non-default) path', async () => {
-      wallet.addSigner('atFive', new SeedSignerEvm(SEED_PHRASE, { path: "0'/0/5" }))
+      wallet.addSigner('atFive', new SeedSignerEvm(SEED_PHRASE, "0'/0/5"))
 
       const account = await wallet.getAccount('atFive')
 
