@@ -32,12 +32,21 @@ export default class WalletManagerEvm extends WalletManager {
      * reference to it and dispose it directly, every subsequent {@link getAccount}/
      * {@link getAccountByPath} call that falls back to the default signer (i.e. without an
      * explicit `signerName`) fails, since deriving from a disposed signer isn't possible.
+     * Conversely, the manager never disposes a signer you supplied: {@link dispose} wipes
+     * only the default signer it creates internally from a seed.
      *
      * @param {ISigner} signer - The default signer.
      * @param {EvmWalletConfig} [config] - The configuration object.
      * @throws {SignerError} If the default signer does not support account derivation.
      */
     constructor(signer: ISigner, config?: EvmWalletConfig);
+    /**
+     * If true, disposes the default signer on calls to the 'dispose' method.
+     *
+     * @protected
+     * @type {boolean}
+     */
+    protected _shouldWipeDefaultSignerOnDisposal: boolean;
     /**
      * An ethers provider to interact with a node of the blockchain.
      *
@@ -69,9 +78,10 @@ export default class WalletManagerEvm extends WalletManager {
      * { signerName }) instead -- both of those always derive, and throw clearly if the named
      * signer can't.
      *
-     * **Warning:** the returned account wraps the registered signer itself, not a copy --
-     * disposing the account disposes that signer, bricking this signer name for any further
-     * use, including subsequent {@link getAccount}/{@link getAccountByPath} calls under it.
+     * **Warning:** the returned account wraps the registered signer itself, exactly where it
+     * sits -- e.g. a second seed registered at the intermediate path "m/44'/60'" yields the
+     * account AT "m/44'/60'", not at a derived leaf, which is rarely what you want to transact
+     * with. Disposing the returned account leaves the registered signer untouched.
      *
      * @param {string} signerName - The signer name registered via {@link addSigner}.
      * @returns {Promise<WalletAccountEvm>} The account.
@@ -97,6 +107,13 @@ export default class WalletManagerEvm extends WalletManager {
      * @returns {Promise<FeeRates>} The fee rates (in weis).
      */
     getFeeRates(): Promise<FeeRates>;
+    /**
+     * Disposes all the wallet accounts, erasing their private keys from the memory. If the
+     * manager was created from a seed, the internally created default signer is wiped too;
+     * a default signer supplied at construction is left untouched, as are signers registered
+     * via {@link addSigner}.
+     */
+    dispose(): void;
 }
 export type ISignerEvm = import("./signers/signer-evm.js").ISignerEvm;
 export type Provider = import("ethers").Provider;

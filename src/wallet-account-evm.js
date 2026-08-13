@@ -45,6 +45,11 @@ import PrivateKeySignerEvm from './signers/private-key-signer-evm.js'
  * @property {number | bigint} amount - The amount of tokens to approve to the spender.
  */
 
+/**
+ * @typedef {Object} SignerOptions
+ * @property {boolean} [shouldWipeSignerOnDisposal] - If true, wipes the signer given at construction on calls to the 'dispose' method.
+ */
+
 const USDT_MAINNET_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 
 const DELEGATION_TX_GAS_LIMIT = 100_000
@@ -66,15 +71,24 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @overload
    * @param {ISignerEvm} signer - A signer implementing the EVM signer interface.
-   * @param {EvmWalletConfig} [config] - The configuration object.
+   * @param {EvmWalletConfig & SignerOptions} [config] - The configuration object.
    */
 
   constructor (seedOrSigner, pathOrConfig = {}, config = {}) {
-    const [signer, configuration] = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
+    const isSeed = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
+    const [signer, configuration] = isSeed
       ? [new SeedSignerEvm(seedOrSigner, `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${pathOrConfig}`), config]
       : [seedOrSigner, pathOrConfig]
 
     super(signer.address, configuration)
+
+    /**
+     * If true, disposes the signer on calls to the 'dispose' method.
+     *
+     * @protected
+     * @type {boolean}
+     */
+    this._shouldWipeSignerOnDisposal = isSeed || Boolean(configuration.shouldWipeSignerOnDisposal)
 
     /**
      * The wallet account configuration.
@@ -380,6 +394,8 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * Disposes the wallet account, erasing the private key from the memory.
    */
   dispose () {
-    this._signer.dispose()
+    if (this._shouldWipeSignerOnDisposal) {
+      this._signer.dispose()
+    }
   }
 }

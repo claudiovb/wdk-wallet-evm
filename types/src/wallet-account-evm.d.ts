@@ -26,9 +26,17 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      * Creates a new evm wallet account using a signer.
      *
      * @param {ISignerEvm} signer - A signer implementing the EVM signer interface.
-     * @param {EvmWalletConfig} [config] - The configuration object.
+     * @param {EvmWalletConfig & SignerOptions} [config] - The configuration object.
      */
-    constructor(signer: ISignerEvm, config?: EvmWalletConfig);
+    constructor(signer: ISignerEvm, config?: EvmWalletConfig & SignerOptions);
+    /**
+     * If true, disposes the signer on calls to the 'dispose' method. Always true for an
+     * account created from a seed, which owns its internally created signer.
+     *
+     * @protected
+     * @type {boolean}
+     */
+    protected _shouldWipeSignerOnDisposal: boolean;
     /**
      * The wallet account configuration.
      *
@@ -150,7 +158,10 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      */
     revokeDelegation(): Promise<TransactionResult>;
     /**
-     * Disposes the wallet account, erasing the private key from the memory.
+     * Disposes the wallet account, erasing the private key from the memory. The signer is
+     * wiped only if the account owns it: always for an account created from a seed, otherwise
+     * only when `shouldWipeSignerOnDisposal` was set in the config -- a caller-supplied signer
+     * is left untouched by default.
      */
     dispose(): void;
 }
@@ -180,5 +191,11 @@ export type ApproveOptions = {
      * - The amount of tokens to approve to the spender.
      */
     amount: number | bigint;
+};
+export type SignerOptions = {
+    /**
+     * - If true, wipes the signer given at construction on calls to the 'dispose' method.
+     */
+    shouldWipeSignerOnDisposal?: boolean;
 };
 import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js';

@@ -69,6 +69,8 @@ export default class WalletManagerEvm extends WalletManager {
    * reference to it and dispose it directly, every subsequent {@link getAccount}/
    * {@link getAccountByPath} call that falls back to the default signer (i.e. without an
    * explicit `signerName`) fails, since deriving from a disposed signer isn't possible.
+   * Conversely, the manager never disposes a signer you supplied: {@link dispose} wipes
+   * only the default signer it creates internally from a seed.
    *
    * @overload
    * @param {ISigner} signer - The default signer.
@@ -76,14 +78,23 @@ export default class WalletManagerEvm extends WalletManager {
    * @throws {SignerError} If the default signer does not support account derivation.
    */
   constructor (seedOrSigner, config = {}) {
+    const isSeed = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
     let signer = seedOrSigner
-    if (typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array) {
+    if (isSeed) {
       signer = new SeedSignerEvm(seedOrSigner, `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}`)
     }
     if (!signer.isDerivable) {
       throw new SignerError('The default signer must be derivable. Non-derivable signers (e.g. private-key signers) can only be registered by name via addSigner.')
     }
     super(signer, config)
+
+    /**
+     * If true, disposes the default signer on calls to the 'dispose' method.
+     *
+     * @protected
+     * @type {boolean}
+     */
+    this._shouldWipeDefaultSignerOnDisposal = isSeed
 
     /**
      * The evm wallet configuration.
@@ -147,9 +158,10 @@ export default class WalletManagerEvm extends WalletManager {
    * { signerName }) instead -- both of those always derive, and throw clearly if the named
    * signer can't.
    *
-   * **Warning:** the returned account wraps the registered signer itself, not a copy --
-   * disposing the account disposes that signer, bricking this signer name for any further
-   * use, including subsequent {@link getAccount}/{@link getAccountByPath} calls under it.
+   * **Warning:** the returned account wraps the registered signer itself, exactly where it
+   * sits -- e.g. a second seed registered at the intermediate path "m/44'/60'" yields the
+   * account AT "m/44'/60'", not at a derived leaf, which is rarely what you want to transact
+   * with. Disposing the returned account leaves the registered signer untouched.
    *
    * @overload
    * @param {string} signerName - The signer name registered via {@link addSigner}.
@@ -191,7 +203,7 @@ export default class WalletManagerEvm extends WalletManager {
     }
     const signer = this.getSigner(signerName)
     const childSigner = await signer.derive(path)
-    const account = new WalletAccountEvm(childSigner, this._config)
+    const account = new WalletAccountEvm(childSigner, { ...this._config, shouldWipeSignerOnDisposal: true })
     this._accounts[key] = account
     return account
   }
@@ -214,5 +226,16 @@ export default class WalletManagerEvm extends WalletManager {
       normal: feeRate * WalletManagerEvm._FEE_RATE_NORMAL_MULTIPLIER / 100n,
       fast: feeRate * WalletManagerEvm._FEE_RATE_FAST_MULTIPLIER / 100n
     }
+  }
+
+  /**
+    * Disposes all the wallet accounts, erasing their private keys from the memory.
+   */
+  dispose () {
+    if (this._shouldWipeDefaultSignerOnDisposal && this._defaultSigner) {
+      this._defaultSigner.dispose()
+    }
+
+    super.dispose()
   }
 }

@@ -606,5 +606,27 @@ describe('WalletAccountEvm', () => {
 
       expect(account.keyPair.privateKey).toBe(null)
     })
+
+    test('should not dispose a caller-supplied signer', () => {
+      const signer = new SeedSignerEvm(SEED_PHRASE)
+      const account = new WalletAccountEvm(signer)
+
+      account.dispose()
+
+      // The caller still owns the signer, so it must keep its key.
+      expect(signer.keyPair.privateKey).not.toBe(null)
+
+      signer.dispose()
+    })
+
+    test('should dispose a caller-supplied signer when shouldWipeSignerOnDisposal is set', () => {
+      const signer = new SeedSignerEvm(SEED_PHRASE)
+      const account = new WalletAccountEvm(signer, { shouldWipeSignerOnDisposal: true })
+
+      account.dispose()
+
+      expect(account.keyPair.privateKey).toBe(null)
+      expect(signer.keyPair.privateKey).toBe(null)
+    })
   })
 })

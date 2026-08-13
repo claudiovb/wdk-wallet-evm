@@ -128,7 +128,7 @@ describe('WalletManagerEvm', () => {
         .rejects.toThrow('No signer registered with name "missing".')
     })
 
-    test('should use a named signer directly, so disposing the account disposes the signer itself', async () => {
+    test('should use the named signer as given without taking ownership of it', async () => {
       const named = new SeedSignerEvm(SEED_PHRASE)
       wallet.addSigner('seed', named)
 
@@ -137,10 +137,12 @@ describe('WalletManagerEvm', () => {
       expect(account).toBeInstanceOf(WalletAccountEvm)
       expect(account.path).toBe("m/44'/60'/0'/0/0")
 
-      // The registered signer is used directly (not a derived copy), so disposing the
-      // returned account disposes it too -- it's a single-use, one-signer-per-account object.
+      // The registered signer is wrapped as-is but stays consumer-owned, so disposing
+      // the returned account must leave the signer fully usable.
       account.dispose()
-      await expect(named.derive("0'/0/1")).rejects.toThrow('Cannot derive: the signer has been disposed.')
+      await expect(named.derive("0'/0/1")).resolves.toBeInstanceOf(SeedSignerEvm)
+
+      named.dispose()
     })
 
     test('should mirror the registered signer\'s own (non-default) path', async () => {
@@ -215,6 +217,46 @@ describe('WalletManagerEvm', () => {
         await expect(account.transfer(TRANSFER))
           .rejects.toThrow(/Cannot read properties of undefined \(reading 'signTransaction'\)/)
       }
+    })
+
+    test('should dispose the internally created default signer when constructed from a seed', () => {
+      const wallet = new WalletManagerEvm(SEED_PHRASE)
+      const defaultSigner = wallet.getSigner()
+
+      wallet.dispose()
+
+      expect(defaultSigner.keyPair.privateKey).toBe(null)
+    })
+
+    test('should not dispose a default signer supplied at construction', async () => {
+      const root = new SeedSignerEvm(SEED_PHRASE, "m/44'/60'")
+      const wallet = new WalletManagerEvm(root)
+
+      wallet.dispose()
+
+      // The consumer still owns the signer, so it must remain fully usable.
+      await expect(root.derive("0'/0/0")).resolves.toBeInstanceOf(SeedSignerEvm)
+
+      root.dispose()
+    })
+
+    test('should not dispose signers registered via addSigner', () => {
+      const named = new SeedSignerEvm(SEED_PHRASE)
+      wallet.addSigner('seed', named)
+
+      wallet.dispose()
+
+      expect(named.keyPair.privateKey).not.toBe(null)
+
+      named.dispose()
+    })
+
+    test('should be safe to call dispose more than once', () => {
+      const wallet = new WalletManagerEvm(SEED_PHRASE)
+
+      wallet.dispose()
+
+      expect(() => wallet.dispose()).not.toThrow()
     })
   })
 
