@@ -12,8 +12,13 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      * Creates a new evm wallet account from a BIP-39 seed, deriving the account's key at the
      * given BIP-44 path.
      *
+     * Kept relative to Ethereum's coin type (m/44'/60') for backwards compatibility with
+     * pre-existing callers of this constructor; unlike SeedSignerEvm's own constructor (which
+     * now takes a full absolute path), this overload's `path` is still just the account path
+     * segment below "m/44'/60'".
+     *
      * @param {string | Uint8Array} seed - The wallet's BIP-39 seed phrase or seed bytes.
-     * @param {string} path - The BIP-44 derivation path (e.g. "0'/0/0").
+     * @param {string} path - The BIP-44 account path, relative to "m/44'/60'" (e.g. "0'/0/0").
      * @param {EvmWalletConfig} [config] - The configuration object.
      */
     constructor(seed: string | Uint8Array, path: string, config?: EvmWalletConfig);

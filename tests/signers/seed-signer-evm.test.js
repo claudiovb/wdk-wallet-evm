@@ -78,7 +78,7 @@ describe('SeedSignerEvm', () => {
     })
 
     test('should derive the same address when path is provided via constructor', () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "0'/0/0")
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
 
       expect(signer.address).toBe(EXPECTED_ADDRESS)
 
@@ -94,6 +94,23 @@ describe('SeedSignerEvm', () => {
       expect(() => { new SeedSignerEvm() }) // eslint-disable-line no-new
         .toThrow('Seed is required.')
     })
+
+    test('should allow constructing an intermediate (non-leaf) path as a derivable root', () => {
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
+
+      expect(signer.isDerivable).toBe(true)
+      expect(signer.path).toBe("m/44'/60'")
+
+      signer.dispose()
+    })
+
+    test('should not enforce any specific coin type or path shape', () => {
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/9'/1")
+
+      expect(signer.path).toBe("m/9'/1")
+
+      signer.dispose()
+    })
   })
 
   describe('keyPair', () => {
@@ -108,11 +125,11 @@ describe('SeedSignerEvm', () => {
   })
 
   describe('derive', () => {
-    test('should derive a child signer with the correct address and path', async () => {
-      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
+    test('should derive a child signer relative to the signer\'s own path', async () => {
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
       const child = await root.derive("0'/0/0")
 
-      expect(child.isDerivable).toBe(false)
+      expect(child.isDerivable).toBe(true)
       expect(child.address).toBe(EXPECTED_ADDRESS)
       expect(child.path).toBe("m/44'/60'/0'/0/0")
       expect(Buffer.from(child.keyPair.privateKey).toString('hex')).toBe(EXPECTED_PRIVATE_KEY)
@@ -131,21 +148,66 @@ describe('SeedSignerEvm', () => {
       signer.dispose()
     })
 
-    test('should throw when deriving from a disposed signer', async () => {
+    test('should allow continuing to derive past a leaf, composing further self-relatively', async () => {
       const root = new SeedSignerEvm(VALID_SEED_PHRASE)
-      root.dispose()
+      const child = await root.derive('0')
 
-      await expect(root.derive("0'/0/0")).rejects.toThrow('Cannot derive: this signer has no root')
-    })
-
-    test('should not let a derived child derive further', async () => {
-      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
-      const child = await root.derive("0'/0/0")
-
-      await expect(child.derive("0'/0/1")).rejects.toThrow('Cannot derive: this signer has no root')
+      expect(child.path).toBe("m/44'/60'/0'/0/0/0")
 
       child.dispose()
       root.dispose()
+    })
+
+    test('should not impose any path shape when deriving under a non-"44\'" custom root', async () => {
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/9'/1")
+      const child = await root.derive('2/3')
+
+      expect(child.path).toBe("m/9'/1/2/3")
+
+      child.dispose()
+      root.dispose()
+    })
+
+    test('should throw when deriving from a disposed signer', async () => {
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
+      root.dispose()
+
+      await expect(root.derive("0'/0/0")).rejects.toThrow('Cannot derive: the signer has been disposed.')
+    })
+
+    test('should let a derived child derive further, one independent key per signer', async () => {
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
+      const child = await root.derive("0'")
+      const grandchild = await child.derive('0/0')
+
+      expect(child.isDerivable).toBe(true)
+      expect(grandchild.path).toBe("m/44'/60'/0'/0/0")
+      expect(grandchild.address).toBe(EXPECTED_ADDRESS)
+
+      // Disposing the intermediate child must not affect the grandchild derived from it.
+      child.dispose()
+      await expect(grandchild.sign(MESSAGE)).resolves.toBe(EXPECTED_SIGNATURE)
+
+      grandchild.dispose()
+      root.dispose()
+    })
+
+    test('should support a signer at the bare root "m" deriving children under any purpose', async () => {
+      const master = new SeedSignerEvm(VALID_SEED_PHRASE, 'm')
+
+      expect(master.path).toBe('m')
+      expect(master.isDerivable).toBe(true)
+
+      const eth = await master.derive("44'/60'/0'/0/0")
+      const other = await master.derive("84'/0'")
+
+      expect(eth.address).toBe(EXPECTED_ADDRESS)
+      expect(other.path).toBe("m/84'/0'")
+      expect(other.isDerivable).toBe(true)
+
+      eth.dispose()
+      other.dispose()
+      master.dispose()
     })
   })
 
@@ -195,7 +257,7 @@ describe('SeedSignerEvm', () => {
 
   describe('dispose', () => {
     test('should clear secrets on dispose', async () => {
-      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
       const child = await root.derive("0'/0/0")
 
       child.dispose()
@@ -213,8 +275,8 @@ describe('SeedSignerEvm', () => {
       expect(() => signer.dispose()).not.toThrow()
     })
 
-    test('should not neuter the shared root when a derived child is disposed', async () => {
-      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
+    test('should not affect the parent or siblings when a derived child is disposed', async () => {
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
       const a = await root.derive("0'/0/0")
       const b = await root.derive("0'/0/1")
 

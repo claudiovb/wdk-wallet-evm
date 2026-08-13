@@ -18,7 +18,7 @@ import { Contract, VoidSigner, Transaction, ZeroAddress } from 'ethers'
 
 import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 
-import SeedSignerEvm from './signers/seed-signer-evm.js'
+import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed-signer-evm.js'
 import PrivateKeySignerEvm from './signers/private-key-signer-evm.js'
 
 /** @typedef {import('./signers/signer-evm.js').ISignerEvm} ISignerEvm */
@@ -57,7 +57,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @overload
    * @param {string | Uint8Array} seed - The wallet's BIP-39 seed phrase or seed bytes.
-   * @param {string} path - The BIP-44 derivation path (e.g. "0'/0/0").
+   * @param {string} path - The BIP-44 account path, relative to "m/44'/60'" (e.g. "0'/0/0").
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
 
@@ -71,7 +71,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
 
   constructor (seedOrSigner, pathOrConfig = {}, config = {}) {
     const [signer, configuration] = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
-      ? [new SeedSignerEvm(seedOrSigner, pathOrConfig), config]
+      ? [new SeedSignerEvm(seedOrSigner, `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${pathOrConfig}`), config]
       : [seedOrSigner, pathOrConfig]
 
     super(signer.address, configuration)

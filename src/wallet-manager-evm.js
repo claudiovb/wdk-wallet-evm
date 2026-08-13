@@ -21,7 +21,7 @@ import { BrowserProvider, JsonRpcProvider } from 'ethers'
 import FailoverProvider from '@tetherto/wdk-failover-provider'
 
 import WalletAccountEvm from './wallet-account-evm.js'
-import SeedSignerEvm from './signers/seed-signer-evm.js'
+import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed-signer-evm.js'
 
 /** @typedef {import('./signers/signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('ethers').Provider} Provider */
@@ -65,6 +65,10 @@ export default class WalletManagerEvm extends WalletManager {
    * non-derivable signers (e.g. private-key signers) are not allowed as the default but
    * may be registered by name via {@link addSigner}. To use a single non-derivable signer
    * outside of the wallet manager, create a standalone account instead.
+   * **Warning:** the signer is kept exactly as given, not cloned -- if you still hold a
+   * reference to it and dispose it directly, every subsequent {@link getAccount}/
+   * {@link getAccountByPath} call that falls back to the default signer (i.e. without an
+   * explicit `signerName`) fails, since deriving from a disposed signer isn't possible.
    *
    * @overload
    * @param {ISigner} signer - The default signer.
@@ -74,7 +78,7 @@ export default class WalletManagerEvm extends WalletManager {
   constructor (seedOrSigner, config = {}) {
     let signer = seedOrSigner
     if (typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array) {
-      signer = new SeedSignerEvm(seedOrSigner)
+      signer = new SeedSignerEvm(seedOrSigner, `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}`)
     }
     if (!signer.isDerivable) {
       throw new SignerError('The default signer must be derivable. Non-derivable signers (e.g. private-key signers) can only be registered by name via addSigner.')
@@ -135,6 +139,18 @@ export default class WalletManagerEvm extends WalletManager {
   /**
    * Returns the wallet account associated with a registered signer.
    *
+   * The registered signer is used exactly as given, wherever it happens to sit -- this
+   * overload never derives. For a private-key signer that's its one account; for a derivable
+   * signer, it's the account at that signer's own current path, unchanged. If you want a
+   * derived leaf from a derivable named signer (e.g. a second seed registered as a bank of
+   * accounts), use {@link getAccount}(index, { signerName }) or {@link getAccountByPath}(path,
+   * { signerName }) instead -- both of those always derive, and throw clearly if the named
+   * signer can't.
+   *
+   * **Warning:** the returned account wraps the registered signer itself, not a copy --
+   * disposing the account disposes that signer, bricking this signer name for any further
+   * use, including subsequent {@link getAccount}/{@link getAccountByPath} calls under it.
+   *
    * @overload
    * @param {string} signerName - The signer name registered via {@link addSigner}.
    * @returns {Promise<WalletAccountEvm>} The account.
@@ -148,10 +164,7 @@ export default class WalletManagerEvm extends WalletManager {
         return this._accounts[key]
       }
       const signer = this.getSigner(indexOrSignerName)
-      const accountSigner = signer.isDerivable
-        ? await signer.derive(signer.path.split('/').slice(-3).join('/'))
-        : signer
-      const account = new WalletAccountEvm(accountSigner, this._config)
+      const account = new WalletAccountEvm(signer, this._config)
       this._accounts[key] = account
       return account
     }

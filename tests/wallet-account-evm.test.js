@@ -88,7 +88,7 @@ describe('WalletAccountEvm', () => {
   beforeEach(async () => {
     provider = createProvider()
 
-    const root = new SeedSignerEvm(SEED_PHRASE)
+    const root = new SeedSignerEvm(SEED_PHRASE, "m/44'/60'")
     const signer = await root.derive("0'/0/0")
     account = new WalletAccountEvm(signer, { provider })
   })
@@ -130,7 +130,7 @@ describe('WalletAccountEvm', () => {
 
     test('should derive the same account as a manually derived signer', async () => {
       const seededAccount = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
-      const signerAccount = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
+      const signerAccount = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"))
 
       expect(await seededAccount.getAddress()).toBe(await signerAccount.getAddress())
     })
@@ -249,7 +249,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should throw if transaction fee exceeds the transaction max fee configuration', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"), {
         provider,
         transactionMaxFee: 0
       })
@@ -269,7 +269,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should allow a fee exactly equal to transactionMaxFee', async () => {
-      const accountAtLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountAtLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"), {
         provider,
         transactionMaxFee: MOCKED_FEE
       })
@@ -280,7 +280,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should allow a fee below transactionMaxFee', async () => {
-      const accountBelowLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountBelowLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"), {
         provider,
         transactionMaxFee: MOCKED_FEE + 1n
       })
@@ -312,7 +312,7 @@ describe('WalletAccountEvm', () => {
     })
 
     test('should throw if transaction fee exceeds the transaction max fee configuration', async () => {
-      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const account = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"), {
         provider,
         transactionMaxFee: 0
       })
@@ -327,7 +327,7 @@ describe('WalletAccountEvm', () => {
         value: 1_000
       }
 
-      const accountAtLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountAtLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"), {
         provider,
         transactionMaxFee: MOCKED_FEE
       })
@@ -343,7 +343,7 @@ describe('WalletAccountEvm', () => {
         value: 1_000
       }
 
-      const accountBelowLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"), {
+      const accountBelowLimit = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"), {
         provider,
         transactionMaxFee: MOCKED_FEE + 1n
       })
@@ -386,7 +386,7 @@ describe('WalletAccountEvm', () => {
 
     test('should throw if transfer fee exceeds the transfer max fee configuration', async () => {
       const account = new WalletAccountEvm(
-        await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"),
+        await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"),
         { provider, transferMaxFee: 0 }
       )
 

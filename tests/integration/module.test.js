@@ -86,7 +86,7 @@ describe('@tetherto/wdk-wallet-evm', () => {
       await sendTestTokensTo(account.address, INITIAL_TOKEN_BALANCE)
     }
 
-    wallet = new WalletManagerEvm(new SeedSignerEvm(SEED_PHRASE), { provider: RPC_URL })
+    wallet = new WalletManagerEvm(new SeedSignerEvm(SEED_PHRASE, "m/44'/60'"), { provider: RPC_URL })
   })
 
   afterEach(async () => {
@@ -244,7 +244,7 @@ describe('@tetherto/wdk-wallet-evm', () => {
   })
 
   test('should create a wallet with a low transfer max fee, derive an account, try to transfer some tokens and gracefully fail', async () => {
-    const wallet = new WalletManagerEvm(new SeedSignerEvm(SEED_PHRASE), { provider: RPC_URL, transferMaxFee: 0 })
+    const wallet = new WalletManagerEvm(new SeedSignerEvm(SEED_PHRASE, "m/44'/60'"), { provider: RPC_URL, transferMaxFee: 0 })
 
     const account = await wallet.getAccount(0)
 

@@ -1,8 +1,8 @@
 /**
- * Signer implementation that derives keys from a BIP-39 seed using the BIP-44 Ethereum path.
- * Always holds a derived account (index 0 by default). A signer created from a seed also
- * retains the HD root and can derive child signers; a derived child holds only its own
- * account and cannot itself derive further.
+ * Signer implementation that derives keys from a BIP-39 seed using an HD path. Every signer
+ * holds exactly one HD node (the Ethereum BIP-44 account at index 0 by default) and can derive
+ * child signers below its own path. Each signer owns an independent copy of its key, so
+ * disposing one never affects its parent, children or siblings.
  *
  * @implements {ISignerEvm}
  */
@@ -15,7 +15,7 @@ export default class SeedSignerEvm implements ISignerEvm {
      * Create a SeedSignerEvm from a BIP-39 seed.
      *
      * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
-     * @param {string} [path] - Relative BIP-44 path segment (e.g. "0'/0/0"). Defaults to the account at index 0.
+     * @param {string} [path] - Absolute BIP-32 path (e.g. "m/44'/60'/0'/0/0"). Defaults to the Ethereum BIP-44 account at index 0.
      * @throws {Error} If no seed is provided.
      * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
      */
@@ -26,17 +26,15 @@ export default class SeedSignerEvm implements ISignerEvm {
     private _address;
     /** @private */
     private _path;
-    /** @private */
-    private _root;
     /**
-     * Whether this signer can derive child signers. True for a signer created from a seed
-     * (which retains the HD root); false for a derived child, which does not retain the root.
+     * Whether this signer can derive child signers. Always true: every seed signer holds an
+     * HD node with a private key and can derive below its own path.
      *
      * @type {boolean}
      */
     get isDerivable(): boolean;
     /**
-     * The BIP 0044 derivation path.
+     * The signer's absolute derivation path.
      *
      * @type {string}
      */
@@ -54,11 +52,14 @@ export default class SeedSignerEvm implements ISignerEvm {
      */
     get keyPair(): KeyPair;
     /**
-     * Derive a child signer using the provided relative path (e.g. "0'/0/0").
+     * Derive a child signer relative to this signer's own path (e.g. calling derive("0'/0/1") on
+     * a signer at "m/44'/60'" yields a child at "m/44'/60'/0'/0/1"). Purely self-relative: no
+     * coin-specific prefix is ever assumed or injected. The child owns an independent copy of
+     * its key and can itself derive further.
      *
-     * @param {string} relPath - The relative BIP-44 path segment.
+     * @param {string} relPath - The path segment to derive, relative to this signer's own path.
      * @returns {Promise<SeedSignerEvm>} The derived child signer.
-     * @throws {Error} If called on a derived child signer, which does not retain the root.
+     * @throws {Error} If the signer has been disposed.
      */
     derive(relPath: string): Promise<SeedSignerEvm>;
     /**
@@ -121,3 +122,9 @@ export type TransactionLike = import("ethers").TransactionLike;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;
 export type TypedData = import("../wallet-account-read-only-evm.js").TypedData;
+/**
+ * Relative BIP-44 prefix for Ethereum (purpose'/coin_type'). Exported so callers that want
+ * "the standard Ethereum path" (WalletAccountEvm's seed overload, WalletManagerEvm's own
+ * internal default signer) can compose an absolute path without hardcoding it themselves.
+ */
+export const BIP_44_ETH_DERIVATION_PATH_PREFIX: "44'/60'";

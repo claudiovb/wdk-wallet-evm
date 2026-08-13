@@ -17,10 +17,13 @@ import * as bip39 from 'bip39'
 
 import MemorySafeHDNodeWallet from '../memory-safe/hd-node-wallet.js'
 
-const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
+// Relative BIP-44 prefix for Ethereum (purpose'/coin_type'). Exported so callers that want
+// "the standard Ethereum path" (WalletAccountEvm's seed overload, WalletManagerEvm's own
+// internal default signer) can compose an absolute path without hardcoding it themselves.
+export const BIP_44_ETH_DERIVATION_PATH_PREFIX = "44'/60'"
 
-// Relative path of the account derived when none is provided.
-const DEFAULT_ACCOUNT_PATH = "0'/0/0"
+// Full absolute path of the account derived when none is provided.
+const DEFAULT_ACCOUNT_PATH = `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}/0'/0/0`
 
 /** @typedef {import('./signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
@@ -31,10 +34,10 @@ const DEFAULT_ACCOUNT_PATH = "0'/0/0"
 /** @typedef {import('../memory-safe/hd-node-wallet.js').default} MemorySafeHDNodeWallet */
 
 /**
- * Signer implementation that derives keys from a BIP-39 seed using the BIP-44 Ethereum path.
- * Always holds a derived account (index 0 by default). A signer created from a seed also
- * retains the HD root and can derive child signers; a derived child holds only its own
- * account and cannot itself derive further.
+ * Signer implementation that derives keys from a BIP-39 seed using an HD path. Every signer
+ * holds exactly one HD node (the Ethereum BIP-44 account at index 0 by default) and can derive
+ * child signers below its own path. Each signer owns an independent copy of its key, so
+ * disposing one never affects its parent, children or siblings.
  *
  * @implements {ISignerEvm}
  */
@@ -43,7 +46,7 @@ export default class SeedSignerEvm {
    * Create a SeedSignerEvm from a BIP-39 seed.
    *
    * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
-   * @param {string} [path] - Relative BIP-44 path segment (e.g. "0'/0/0"). Defaults to the account at index 0.
+   * @param {string} [path] - Absolute BIP-32 path (e.g. "m/44'/60'/0'/0/0"). Defaults to the Ethereum BIP-44 account at index 0.
    * @throws {Error} If no seed is provided.
    * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
    */
@@ -53,21 +56,25 @@ export default class SeedSignerEvm {
     }
 
     const root = MemorySafeHDNodeWallet.fromSeed(SeedSignerEvm._normalizeSeed(seed))
-    SeedSignerEvm._init(this, root, path)
+    const account = root.derivePath(path)
+    // derivePath returns the root itself when path is "m"; scrub the master key
+    // whenever the signer sits below it, so no signer keeps the root alive.
+    if (account !== root) root.dispose()
+    SeedSignerEvm._init(this, account)
   }
 
   /**
-   * Whether this signer can derive child signers. True for a root signer (which holds the
-   * HD root); false for a derived child, which does not retain the root.
+   * Whether this signer can derive child signers. Always true: every seed signer holds an
+   * HD node with a private key and can derive below its own path.
    *
    * @type {boolean}
    */
   get isDerivable () {
-    return Boolean(this._root)
+    return true
   }
 
   /**
-   * The BIP 0044 derivation path.
+   * The signer's absolute derivation path.
    *
    * @type {string}
    */
@@ -97,18 +104,21 @@ export default class SeedSignerEvm {
   }
 
   /**
-   * Derive a child signer using the provided relative path (e.g. "0'/0/0").
+   * Derive a child signer relative to this signer's own path (e.g. calling derive("0'/0/1") on
+   * a signer at "m/44'/60'" yields a child at "m/44'/60'/0'/0/1"). Purely self-relative: no
+   * coin-specific prefix is ever assumed or injected. The child owns an independent copy of
+   * its key and can itself derive further.
    *
-   * @param {string} relPath - The relative BIP-44 path segment.
+   * @param {string} relPath - The path segment to derive, relative to this signer's own path.
    * @returns {Promise<SeedSignerEvm>} The derived child signer.
-   * @throws {Error} If called on a derived child signer, which does not retain the root.
+   * @throws {Error} If the signer has been disposed.
    */
   async derive (relPath) {
-    if (!this._root) {
-      throw new Error('Cannot derive: this signer has no root (it is a derived child or has been disposed).')
+    if (!this._account) {
+      throw new Error('Cannot derive: the signer has been disposed.')
     }
     const signer = Object.create(SeedSignerEvm.prototype)
-    SeedSignerEvm._init(signer, this._root, relPath, false)
+    SeedSignerEvm._init(signer, this._account.derivePath(relPath))
     return signer
   }
 
@@ -167,8 +177,6 @@ export default class SeedSignerEvm {
   dispose () {
     if (this._account) this._account.dispose()
     this._account = undefined
-    if (this._root) this._root.dispose()
-    this._root = undefined
   }
 
   /** @private */
@@ -181,11 +189,9 @@ export default class SeedSignerEvm {
   }
 
   /** @private */
-  static _init (signer, root, path, retainRoot = true) {
-    const fullPath = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${path}`
-    signer._account = root.derivePath(fullPath)
-    signer._address = signer._account.address
-    signer._path = fullPath
-    signer._root = retainRoot ? root : undefined
+  static _init (signer, account) {
+    signer._account = account
+    signer._address = account.address
+    signer._path = account.path
   }
 }

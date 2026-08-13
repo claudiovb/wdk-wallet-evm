@@ -28,6 +28,10 @@ export default class WalletManagerEvm extends WalletManager {
      * non-derivable signers (e.g. private-key signers) are not allowed as the default but
      * may be registered by name via {@link addSigner}. To use a single non-derivable signer
      * outside of the wallet manager, create a standalone account instead.
+     * **Warning:** the signer is kept exactly as given, not cloned -- if you still hold a
+     * reference to it and dispose it directly, every subsequent {@link getAccount}/
+     * {@link getAccountByPath} call that falls back to the default signer (i.e. without an
+     * explicit `signerName`) fails, since deriving from a disposed signer isn't possible.
      *
      * @param {ISigner} signer - The default signer.
      * @param {EvmWalletConfig} [config] - The configuration object.
@@ -56,6 +60,18 @@ export default class WalletManagerEvm extends WalletManager {
     }): Promise<WalletAccountEvm>;
     /**
      * Returns the wallet account associated with a registered signer.
+     *
+     * The registered signer is used exactly as given, wherever it happens to sit -- this
+     * overload never derives. For a private-key signer that's its one account; for a derivable
+     * signer, it's the account at that signer's own current path, unchanged. If you want a
+     * derived leaf from a derivable named signer (e.g. a second seed registered as a bank of
+     * accounts), use {@link getAccount}(index, { signerName }) or {@link getAccountByPath}(path,
+     * { signerName }) instead -- both of those always derive, and throw clearly if the named
+     * signer can't.
+     *
+     * **Warning:** the returned account wraps the registered signer itself, not a copy --
+     * disposing the account disposes that signer, bricking this signer name for any further
+     * use, including subsequent {@link getAccount}/{@link getAccountByPath} calls under it.
      *
      * @param {string} signerName - The signer name registered via {@link addSigner}.
      * @returns {Promise<WalletAccountEvm>} The account.

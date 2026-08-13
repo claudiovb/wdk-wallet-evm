@@ -49,7 +49,7 @@ describe('WalletManagerEvm', () => {
   let wallet
 
   beforeEach(async () => {
-    const root = new SeedSignerEvm(SEED_PHRASE)
+    const root = new SeedSignerEvm(SEED_PHRASE, "m/44'/60'")
     wallet = new WalletManagerEvm(root, { provider: createProvider() })
   })
 
@@ -101,7 +101,7 @@ describe('WalletManagerEvm', () => {
     })
 
     test('should derive from a named signer via options.signerName', async () => {
-      wallet.addSigner('secondary', new SeedSignerEvm(SEED_PHRASE))
+      wallet.addSigner('secondary', new SeedSignerEvm(SEED_PHRASE, "m/44'/60'"))
 
       const account = await wallet.getAccount(2, { signerName: 'secondary' })
 
@@ -128,7 +128,7 @@ describe('WalletManagerEvm', () => {
         .rejects.toThrow('No signer registered with name "missing".')
     })
 
-    test('should derive a detached account for a named derivable signer without handing out the root', async () => {
+    test('should use a named signer directly, so disposing the account disposes the signer itself', async () => {
       const named = new SeedSignerEvm(SEED_PHRASE)
       wallet.addSigner('seed', named)
 
@@ -137,13 +137,14 @@ describe('WalletManagerEvm', () => {
       expect(account).toBeInstanceOf(WalletAccountEvm)
       expect(account.path).toBe("m/44'/60'/0'/0/0")
 
-      // Disposing the account must not neuter the registered root.
+      // The registered signer is used directly (not a derived copy), so disposing the
+      // returned account disposes it too -- it's a single-use, one-signer-per-account object.
       account.dispose()
-      await expect(named.derive("0'/0/1")).resolves.toBeInstanceOf(SeedSignerEvm)
+      await expect(named.derive("0'/0/1")).rejects.toThrow('Cannot derive: the signer has been disposed.')
     })
 
     test('should mirror the registered signer\'s own (non-default) path', async () => {
-      wallet.addSigner('atFive', new SeedSignerEvm(SEED_PHRASE, "0'/0/5"))
+      wallet.addSigner('atFive', new SeedSignerEvm(SEED_PHRASE, "m/44'/60'/0'/0/5"))
 
       const account = await wallet.getAccount('atFive')
 
@@ -161,7 +162,7 @@ describe('WalletManagerEvm', () => {
     })
 
     test('should derive from a named signer via options.signerName', async () => {
-      wallet.addSigner('secondary', new SeedSignerEvm(SEED_PHRASE))
+      wallet.addSigner('secondary', new SeedSignerEvm(SEED_PHRASE, "m/44'/60'"))
 
       const account = await wallet.getAccountByPath("0'/0/0", { signerName: 'secondary' })
 
