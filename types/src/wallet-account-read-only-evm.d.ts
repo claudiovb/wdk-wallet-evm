@@ -29,11 +29,12 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      */
     protected _provider: Provider | undefined;
     /**
-     * The account's address.
+     * The account's address, or undefined if the account's signer doesn't expose its address
+     * synchronously. Use {@link getAddress} to always resolve the address.
      *
-     * @type {string}
+     * @type {string | undefined}
      */
-    get address(): string;
+    get address(): string | undefined;
     /**
      * Returns the account's eth balance.
      *

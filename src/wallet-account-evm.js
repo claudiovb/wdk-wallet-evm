@@ -143,10 +143,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * @returns {Promise<string>} The account's address.
    */
   async getAddress () {
-    if (this._address) return this._address
-    const addr = await this._signer.getAddress()
-    this.__address = addr
-    return addr
+    return await this._signer.getAddress()
   }
 
   /**

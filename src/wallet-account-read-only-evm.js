@@ -133,9 +133,10 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   }
 
   /**
-   * The account's address.
+   * The account's address, or undefined if the account's signer doesn't expose its address
+   * synchronously. Use {@link getAddress} to always resolve the address.
    *
-   * @type {string}
+   * @type {string | undefined}
    */
   get address () {
     return this._address
