@@ -14,9 +14,9 @@
 
 'use strict'
 
-import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
+import { WalletAccountReadOnly, NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
 
-import { BrowserProvider, Contract, Interface, JsonRpcProvider, Network, Signature, toQuantity, verifyMessage, verifyTypedData } from 'ethers'
+import { BrowserProvider, Contract, Interface, isError, isHexString, JsonRpcProvider, Network, Signature, toQuantity, verifyMessage, verifyTypedData } from 'ethers'
 
 import { multicall } from './multicall.js'
 
@@ -28,9 +28,20 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
 /** @typedef {import('ethers').TypedDataField} TypedDataField */
 /** @typedef {import('ethers').AuthorizationLike} AuthorizationLike */
 /** @typedef {import('ethers').TransactionReceipt} EvmTransactionReceipt */
+/** @typedef {import('ethers').TransactionResponse} EvmTransactionResponse */
 
 /** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
+/** @typedef {import('@tetherto/wdk-wallet').TransactionReceipt} TransactionReceipt */
+/** @typedef {import('@tetherto/wdk-wallet').WaitForTransactionOptions} WaitForTransactionOptions */
+
+/**
+ * The EVM-specific fields added to a normalized transaction receipt.
+ *
+ * @typedef {Object} EvmTransactionDetails
+ * @property {number} confirmations - The number of confirmations (0 while pending or dropped).
+ * @property {EvmTransactionReceipt | null} receipt - The native ethers receipt, or null while the transaction is pending or dropped.
+ */
 
 /**
  * @typedef {Object} TypedData
@@ -261,6 +272,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   /**
    * Returns a transaction's receipt.
    *
+   * @deprecated Use {@link getTransaction} instead, which returns a normalized, finality-based receipt. The raw ethers receipt remains available on its `receipt` property.
    * @param {string} hash - The transaction's hash.
    * @returns {Promise<EvmTransactionReceipt | null>} – The receipt, or null if the transaction has not been included in a block yet.
    */
@@ -270,6 +282,115 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
     }
 
     return await this._provider.getTransactionReceipt(hash)
+  }
+
+  /**
+   * Returns a normalized, finality-based receipt for a transaction.
+   *
+   * @param {string} hash - The transaction's hash.
+   * @returns {Promise<TransactionReceipt & EvmTransactionDetails>} The normalized receipt.
+   * @throws {ValueError} If the hash is not a valid transaction hash.
+   * @throws {NoSuchElementError} If no transaction has been found for the given hash.
+   */
+  async getTransaction (hash) {
+    if (!this._provider) {
+      throw new Error('The wallet must be connected to a provider to fetch transactions.')
+    }
+
+    if (!isHexString(hash, 32)) {
+      throw new ValueError(`Invalid transaction hash: '${hash}'.`)
+    }
+
+    const [transaction, receipt] = await Promise.all([
+      this._provider.getTransaction(hash),
+      this._provider.getTransactionReceipt(hash)
+    ])
+
+    if (!transaction && !receipt) {
+      throw new NoSuchElementError(`No transaction found for '${hash}'.`)
+    }
+
+    if (!receipt) {
+      const dropped = transaction
+        ? await this._isReplaced(transaction)
+        : false
+
+      return {
+        hash,
+        finality: dropped ? 'dropped' : 'pending',
+        confirmations: 0,
+        receipt: null
+      }
+    }
+
+    const confirmations = await receipt.confirmations()
+    const finalized = await this._isFinalized(receipt.blockNumber)
+
+    return {
+      hash,
+      finality: finalized ? 'final' : 'confirmed',
+      success: receipt.status === 1,
+      block: receipt.blockNumber,
+      fee: receipt.fee,
+      confirmations,
+      receipt
+    }
+  }
+
+  /**
+   * Blocks until a transaction reaches a terminal state (the requested finality target or `dropped`), or times out.
+   *
+   * @param {string} hash - The transaction's hash.
+   * @param {WaitForTransactionOptions} [options] - The wait options.
+   * @returns {Promise<TransactionReceipt & EvmTransactionDetails>} The terminal receipt: the finality target reached (inspect `success` to tell success from revert), or `dropped`.
+   * @throws {TimeoutError} If the target is not reached before the timeout.
+   */
+  async waitForTransaction (hash, options = {}) {
+    return await super.waitForTransaction(hash, options)
+  }
+
+  /**
+   * Returns whether a block is at or below the chain's `finalized` block. Chains that don't support the tag are treated as not finalized.
+   *
+   * @protected
+   * @param {number} blockNumber - The block number to check.
+   * @returns {Promise<boolean>} True if the block is finalized.
+   */
+  async _isFinalized (blockNumber) {
+    try {
+      const finalizedBlock = await this._provider.getBlock('finalized')
+      return !!finalizedBlock && blockNumber <= finalizedBlock.number
+    } catch (error) {
+      // Treat an unsupported 'finalized' block tag as not-finalized; let real failures propagate.
+      const rpcCode = error?.info?.error?.code
+
+      if (isError(error, 'UNSUPPORTED_OPERATION') || rpcCode === -32601 || rpcCode === -32602) {
+        return false
+      }
+
+      throw error
+    }
+  }
+
+  /**
+   * Returns whether an unmined transaction has been replaced, i.e. its sender's mined nonce has already advanced past the transaction's nonce.
+   *
+   * @protected
+   * @param {EvmTransactionResponse} transaction - The unmined transaction.
+   * @returns {Promise<boolean>} True if the transaction's nonce slot is already taken.
+   */
+  async _isReplaced (transaction) {
+    const accountNonce = await this._provider.getTransactionCount(transaction.from, 'latest')
+    return accountNonce > transaction.nonce
+  }
+
+  /**
+   * Overrides the base default to allow for slower EVM inclusion and confirmation.
+   *
+   * @type {number}
+   */
+  get defaultWaitTimeout () {
+    return 120000
   }
 
   /**

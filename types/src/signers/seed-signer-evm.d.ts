@@ -16,8 +16,8 @@ export default class SeedSignerEvm implements ISignerEvm {
      *
      * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
      * @param {string} [path] - Absolute BIP-32 path (e.g. "m/44'/60'/0'/0/0"). Defaults to the Ethereum BIP-44 account at index 0.
-     * @throws {Error} If no seed is provided.
-     * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
+     * @throws {ValueError} If no seed is provided.
+     * @throws {ValueError} If a seed is provided but is not a valid BIP-39 mnemonic.
      */
     constructor(seed: string | Uint8Array, path?: string);
     /** @private */
@@ -59,7 +59,7 @@ export default class SeedSignerEvm implements ISignerEvm {
      *
      * @param {string} relPath - The path segment to derive, relative to this signer's own path.
      * @returns {Promise<SeedSignerEvm>} The derived child signer.
-     * @throws {Error} If the signer has been disposed.
+     * @throws {InvalidSignerError} If the signer has been disposed.
      */
     derive(relPath: string): Promise<SeedSignerEvm>;
     /**
@@ -118,6 +118,8 @@ export type MemorySafeHDNodeWallet = {
 };
 export type ISignerEvm = import("./signer-evm.js").ISignerEvm;
 export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
+export type InvalidSignerError = import("@tetherto/wdk-wallet").InvalidSignerError;
+export type ValueError = import("@tetherto/wdk-wallet").ValueError;
 export type TransactionLike = import("ethers").TransactionLike;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;

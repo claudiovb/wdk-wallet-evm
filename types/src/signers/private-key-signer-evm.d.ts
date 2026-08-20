@@ -44,17 +44,9 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
      */
     get keyPair(): KeyPair;
     /**
-     * Derive a child signer using a relative path (e.g., "0'/0/0").
-     *
-     * @param {string} relPath - The relative derivation path.
-     * @returns {Promise<never>} The derived signer.
-     * @throws {SignerError} If the signer does not support derivation.
-     */
-    derive(relPath: string): Promise<never>;
-    /**
-     * Returns the account's address.
-     *
-     * @returns {Promise<string>} The account's address.
+     * PrivateKeySignerEvm is not a hierarchical signer and cannot derive.
+     * @returns {Promise<never>}
+     * @throws {InvalidSignerError} Always — private-key signers do not support derivation.
      */
     getAddress(): Promise<string>;
     /**
@@ -92,7 +84,7 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
 }
 export type ISignerEvm = import("./signer-evm.js").ISignerEvm;
 export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
-export type SignerError = import("@tetherto/wdk-wallet").SignerError;
+export type InvalidSignerError = import("@tetherto/wdk-wallet").InvalidSignerError;
 export type TransactionLike = import("ethers").TransactionLike;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;

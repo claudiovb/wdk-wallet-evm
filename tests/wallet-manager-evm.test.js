@@ -111,7 +111,7 @@ describe('WalletManagerEvm', () => {
 
     test('should throw if the named signer does not exist', async () => {
       await expect(wallet.getAccount(0, { signerName: 'missing' }))
-        .rejects.toThrow('No signer registered with name "missing".')
+        .rejects.toThrow('No signer found with name "missing".')
     })
 
     test('should return the account of a named private key signer (string overload)', async () => {
@@ -125,7 +125,7 @@ describe('WalletManagerEvm', () => {
 
     test('should throw if the named signer does not exist (string overload)', async () => {
       await expect(wallet.getAccount('missing'))
-        .rejects.toThrow('No signer registered with name "missing".')
+        .rejects.toThrow('No signer found with name "missing".')
     })
 
     test('should use the named signer as given without taking ownership of it', async () => {

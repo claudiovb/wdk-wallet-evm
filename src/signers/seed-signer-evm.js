@@ -15,6 +15,8 @@
 
 import * as bip39 from 'bip39'
 
+import { InvalidSignerError, ValueError } from '@tetherto/wdk-wallet'
+
 import MemorySafeHDNodeWallet from '../memory-safe/hd-node-wallet.js'
 
 // Relative BIP-44 prefix for Ethereum (purpose'/coin_type'). Exported so callers that want
@@ -47,12 +49,12 @@ export default class SeedSignerEvm {
    *
    * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
    * @param {string} [path] - Absolute BIP-32 path (e.g. "m/44'/60'/0'/0/0"). Defaults to the Ethereum BIP-44 account at index 0.
-   * @throws {Error} If no seed is provided.
-   * @throws {Error} If a seed is provided but is not a valid BIP-39 mnemonic.
+   * @throws {ValueError} If no seed is provided.
+   * @throws {ValueError} If a seed is provided but is not a valid BIP-39 mnemonic.
    */
   constructor (seed, path = DEFAULT_ACCOUNT_PATH) {
     if (!seed) {
-      throw new Error('Seed is required.')
+      throw new ValueError('Seed is required.')
     }
 
     const root = MemorySafeHDNodeWallet.fromSeed(SeedSignerEvm._normalizeSeed(seed))
@@ -111,11 +113,11 @@ export default class SeedSignerEvm {
    *
    * @param {string} relPath - The path segment to derive, relative to this signer's own path.
    * @returns {Promise<SeedSignerEvm>} The derived child signer.
-   * @throws {Error} If the signer has been disposed.
+   * @throws {InvalidSignerError} If the signer has been disposed.
    */
   async derive (relPath) {
     if (!this._account) {
-      throw new Error('Cannot derive: the signer has been disposed.')
+      throw new InvalidSignerError('Cannot derive: the signer has been disposed.')
     }
     const signer = Object.create(SeedSignerEvm.prototype)
     SeedSignerEvm._init(signer, this._account.derivePath(relPath))
@@ -183,7 +185,7 @@ export default class SeedSignerEvm {
   static _normalizeSeed (seed) {
     if (typeof seed !== 'string') return seed
     if (!bip39.validateMnemonic(seed)) {
-      throw new Error('The seed phrase is invalid.')
+      throw new ValueError('The seed phrase is invalid.')
     }
     return bip39.mnemonicToSeedSync(seed)
   }

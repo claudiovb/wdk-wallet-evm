@@ -15,7 +15,7 @@
 
 import { BaseWallet } from 'ethers'
 
-import { SignerError } from '@tetherto/wdk-wallet'
+import { InvalidSignerError } from '@tetherto/wdk-wallet'
 
 import MemorySafeSigningKey from '../memory-safe/signing-key.js'
 
@@ -90,14 +90,12 @@ export default class PrivateKeySignerEvm {
   }
 
   /**
-   * Derive a child signer using a relative path (e.g., "0'/0/0").
-   *
-   * @param {string} relPath - The relative derivation path.
-   * @returns {Promise<never>} The derived signer.
-   * @throws {SignerError} If the signer does not support derivation.
+   * PrivateKeySignerEvm is not a hierarchical signer and cannot derive.
+   * @returns {Promise<never>}
+   * @throws {InvalidSignerError} Always — private-key signers do not support derivation.
    */
-  async derive (relPath) {
-    throw new SignerError('PrivateKeySignerEvm does not support derivation.')
+  async derive () {
+    throw new InvalidSignerError('PrivateKeySignerEvm does not support derivation.')
   }
 
   /**

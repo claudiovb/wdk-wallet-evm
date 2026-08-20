@@ -14,7 +14,7 @@
 
 'use strict'
 
-import WalletManager, { SignerError } from '@tetherto/wdk-wallet'
+import WalletManager, { InvalidSignerError } from '@tetherto/wdk-wallet'
 
 import { BrowserProvider, JsonRpcProvider } from 'ethers'
 
@@ -28,7 +28,9 @@ import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed
 
 /** @typedef {import("@tetherto/wdk-wallet").FeeRates} FeeRates */
 /** @typedef {import("@tetherto/wdk-wallet").ISigner} ISigner */
-/** @typedef {import("@tetherto/wdk-wallet").SignerError} SignerError */
+/** @typedef {import("@tetherto/wdk-wallet").InvalidSignerError} InvalidSignerError */
+/** @typedef {import("@tetherto/wdk-wallet").NoSuchElementError} NoSuchElementError */
+/** @typedef {import("@tetherto/wdk-wallet").ValueError} ValueError */
 
 /** @typedef {import('./wallet-account-evm.js').EvmWalletConfig} EvmWalletConfig */
 
@@ -55,7 +57,7 @@ export default class WalletManagerEvm extends WalletManager {
    * @overload
    * @param {string | Uint8Array} seed - The BIP-39 seed phrase or raw seed bytes.
    * @param {EvmWalletConfig} [config] - The configuration object.
-   * @throws {Error} If the seed phrase is invalid.
+   * @throws {ValueError} If the seed phrase is invalid.
    */
 
   /**
@@ -75,7 +77,7 @@ export default class WalletManagerEvm extends WalletManager {
    * @overload
    * @param {ISigner} signer - The default signer.
    * @param {EvmWalletConfig} [config] - The configuration object.
-   * @throws {SignerError} If the default signer does not support account derivation.
+   * @throws {InvalidSignerError} If the default signer does not support account derivation.
    */
   constructor (seedOrSigner, config = {}) {
     const isSeed = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
@@ -84,7 +86,7 @@ export default class WalletManagerEvm extends WalletManager {
       signer = new SeedSignerEvm(seedOrSigner, `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}`)
     }
     if (!signer.isDerivable) {
-      throw new SignerError('The default signer must be derivable. Non-derivable signers (e.g. private-key signers) can only be registered by name via addSigner.')
+      throw new InvalidSignerError('The default signer must be derivable. Non-derivable signers (e.g. private-key signers) can only be registered by name via addSigner.')
     }
     super(signer, config)
 
@@ -143,8 +145,8 @@ export default class WalletManagerEvm extends WalletManager {
    * @param {Object} [options] - Account options.
    * @param {string} [options.signerName] - The signer name. Omit to use the default signer.
    * @returns {Promise<WalletAccountEvm>} The account.
-   * @throws {Error} If a signer name is given but no signer exists with that name.
-   * @throws {SignerError} If the signer doesn't support account derivation.
+   * @throws {NoSuchElementError} If a signer name is given but no signer exists with that name.
+   * @throws {InvalidSignerError} If the signer doesn't support account derivation.
    */
 
   /**
@@ -166,7 +168,7 @@ export default class WalletManagerEvm extends WalletManager {
    * @overload
    * @param {string} signerName - The signer name registered via {@link addSigner}.
    * @returns {Promise<WalletAccountEvm>} The account.
-   * @throws {Error} If no signer exists with the given name.
+   * @throws {NoSuchElementError} If no signer exists with the given name.
    */
 
   async getAccount (indexOrSignerName = 0, options = {}) {
@@ -192,8 +194,8 @@ export default class WalletManagerEvm extends WalletManager {
    * @param {Object} [options] - Account options.
    * @param {string} [options.signerName] - The signer name. Omit to use the default signer.
    * @returns {Promise<WalletAccountEvm>} The account.
-   * @throws {Error} If a signer name is given but no signer exists with that name.
-   * @throws {SignerError} If the signer doesn't support account derivation.
+   * @throws {NoSuchElementError} If a signer name is given but no signer exists with that name.
+   * @throws {InvalidSignerError} If the signer doesn't support account derivation.
    */
   async getAccountByPath (path, options = {}) {
     const { signerName } = options

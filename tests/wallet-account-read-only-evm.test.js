@@ -3,6 +3,7 @@ import { AbiCoder, toQuantity } from 'ethers'
 import { describe, expect, jest, test } from '@jest/globals'
 
 import { WalletAccountReadOnlyEvm } from '../index.js'
+import { NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
 
 const ADDRESS = '0x405005C7c4422390F4B334F64Cf20E0b767131d0'
 const TOKEN_ADDRESS = '0x4CC1D60C268B68a7019034E6dE7Fb05d82d827E0'
@@ -270,6 +271,163 @@ describe('WalletAccountReadOnlyEvm', () => {
 
       await expect(account.getTransactionReceipt(HASH))
         .rejects.toThrow('The wallet must be connected to a provider to fetch transaction receipts.')
+    })
+  })
+
+  describe('getTransaction', () => {
+    const HASH = '0xdef456abc123def456abc123def456abc123def456abc123def456abc123def4'
+
+    function receiptResponse (params, { status = '0x1', blockNumber = '0xa' } = {}) {
+      return {
+        transactionHash: params[0],
+        transactionIndex: '0x0',
+        blockHash: '0x' + '22'.repeat(32),
+        blockNumber,
+        from: ADDRESS,
+        to: SPENDER_ADDRESS,
+        contractAddress: null,
+        gasUsed: '0x5208',
+        cumulativeGasUsed: '0x5208',
+        effectiveGasPrice: '0x77359400',
+        logsBloom: '0x' + '00'.repeat(256),
+        logs: [],
+        status,
+        type: '0x2'
+      }
+    }
+
+    function txResponse (params) {
+      return {
+        hash: params[0],
+        nonce: '0x0',
+        blockHash: null,
+        blockNumber: null,
+        transactionIndex: null,
+        from: ADDRESS,
+        to: SPENDER_ADDRESS,
+        value: '0x0',
+        gasPrice: '0x77359400',
+        gas: '0x5208',
+        input: '0x',
+        type: '0x0',
+        chainId: '0x1',
+        v: '0x1b',
+        r: '0x' + '11'.repeat(32),
+        s: '0x' + '22'.repeat(32)
+      }
+    }
+
+    function finalizedBlock (number) {
+      return (params) => params[0] === 'finalized' ? { ...DUMMY_BLOCK, number } : DUMMY_BLOCK
+    }
+
+    test('returns confirmed when mined but not yet finalized', async () => {
+      const account = createAccount({
+        eth_getTransactionByHash: () => null,
+        eth_getTransactionReceipt: (params) => receiptResponse(params),
+        eth_blockNumber: () => '0xa',
+        eth_getBlockByNumber: finalizedBlock('0x5')
+      })
+
+      const info = await account.getTransaction(HASH)
+
+      expect(info.hash).toBe(HASH)
+      expect(info.finality).toBe('confirmed')
+      expect(info.success).toBe(true)
+      expect(info.confirmations).toBe(1)
+      expect(info.fee).toBe(21_000n * 2_000_000_000n)
+      expect(info.receipt).not.toBeNull()
+    })
+
+    test('returns final when the block is at or below the finalized block', async () => {
+      const account = createAccount({
+        eth_getTransactionByHash: () => null,
+        eth_getTransactionReceipt: (params) => receiptResponse(params),
+        eth_blockNumber: () => '0xa',
+        eth_getBlockByNumber: finalizedBlock('0x14')
+      })
+
+      const info = await account.getTransaction(HASH)
+
+      expect(info.finality).toBe('final')
+      expect(info.success).toBe(true)
+    })
+
+    test('returns success false for a reverted transaction', async () => {
+      const account = createAccount({
+        eth_getTransactionByHash: () => null,
+        eth_getTransactionReceipt: (params) => receiptResponse(params, { status: '0x0' }),
+        eth_blockNumber: () => '0xa',
+        eth_getBlockByNumber: finalizedBlock('0x5')
+      })
+
+      const info = await account.getTransaction(HASH)
+
+      expect(info.finality).toBe('confirmed')
+      expect(info.success).toBe(false)
+    })
+
+    test('returns pending when seen in the mempool but not mined', async () => {
+      const account = createAccount({
+        eth_getTransactionByHash: (params) => txResponse(params),
+        eth_getTransactionReceipt: () => null
+      })
+
+      const info = await account.getTransaction(HASH)
+
+      expect(info.finality).toBe('pending')
+      expect(info.success).toBeUndefined()
+      expect(info.confirmations).toBe(0)
+      expect(info.receipt).toBeNull()
+    })
+
+    test('returns dropped when the nonce slot has been taken by another tx', async () => {
+      const account = createAccount({
+        eth_getTransactionByHash: (params) => txResponse(params),
+        eth_getTransactionReceipt: () => null,
+        eth_getTransactionCount: () => '0x1'
+      })
+
+      const info = await account.getTransaction(HASH)
+
+      expect(info.finality).toBe('dropped')
+      expect(info.success).toBeUndefined()
+      expect(info.confirmations).toBe(0)
+      expect(info.receipt).toBeNull()
+    })
+
+    test('stays pending when an earlier nonce is still unmined (nonce gap)', async () => {
+      const account = createAccount({
+        eth_getTransactionByHash: (params) => ({ ...txResponse(params), nonce: '0x5' }),
+        eth_getTransactionReceipt: () => null,
+        eth_getTransactionCount: () => '0x2'
+      })
+
+      const info = await account.getTransaction(HASH)
+
+      expect(info.finality).toBe('pending')
+    })
+
+    test('throws NoSuchElementError when the transaction is unknown', async () => {
+      const account = createAccount({
+        eth_getTransactionByHash: () => null,
+        eth_getTransactionReceipt: () => null
+      })
+
+      await expect(account.getTransaction(HASH)).rejects.toThrow(NoSuchElementError)
+    })
+
+    test('throws ValueError for a malformed transaction hash', async () => {
+      const account = createAccount({})
+
+      await expect(account.getTransaction('0x1234')).rejects.toThrow(ValueError)
+    })
+
+    test('should throw if the account is not connected to a provider', async () => {
+      const account = new WalletAccountReadOnlyEvm(ADDRESS)
+
+      await expect(account.getTransaction(HASH))
+        .rejects.toThrow('The wallet must be connected to a provider to fetch transactions.')
     })
   })
 
