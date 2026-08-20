@@ -134,7 +134,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    */
   static fromPrivateKey (privateKey, config = {}) {
     const signer = new PrivateKeySignerEvm(privateKey)
-    return new WalletAccountEvm(signer, config)
+    return new WalletAccountEvm(signer, { ...config, shouldWipeSignerOnDisposal: true })
   }
 
   /**

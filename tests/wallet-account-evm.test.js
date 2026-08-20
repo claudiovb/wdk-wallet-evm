@@ -167,6 +167,16 @@ describe('WalletAccountEvm', () => {
 
       account.dispose()
     })
+
+    test('should wipe the internally created signer on disposal', () => {
+      const account = WalletAccountEvm.fromPrivateKey(ACCOUNT.keyPair.privateKey)
+
+      expect(account.keyPair.privateKey).not.toBeNull()
+
+      account.dispose()
+
+      expect(account.keyPair.privateKey).toBeNull()
+    })
   })
 
   describe('sign', () => {
