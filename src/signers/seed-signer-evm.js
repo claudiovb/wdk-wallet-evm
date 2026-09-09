@@ -48,7 +48,7 @@ export default class SeedSignerEvm {
    * Create a SeedSignerEvm from a BIP-39 seed.
    *
    * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
-   * @param {string} [path] - Absolute BIP-32 path (e.g. "m/44'/60'/0'/0/0"). Defaults to the Ethereum BIP-44 account at index 0.
+   * @param {string} [path] - A BIP-32 path (default: "m/44'/60'/0'/0/0").
    * @throws {ValueError} If no seed is provided.
    * @throws {ValueError} If a seed is provided but is not a valid BIP-39 mnemonic.
    */
