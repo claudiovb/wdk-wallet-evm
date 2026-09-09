@@ -49,8 +49,7 @@ export default class SeedSignerEvm {
    *
    * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
    * @param {string} [path] - A BIP-32 path (default: "m/44'/60'/0'/0/0").
-   * @throws {ValueError} If no seed is provided.
-   * @throws {ValueError} If a seed is provided but is not a valid BIP-39 mnemonic.
+   * @throws {ValueError} If the given seed is an invalid byte sequence or BIP-39 seed phrase.
    */
   constructor (seed, path = DEFAULT_ACCOUNT_PATH) {
     if (!seed) {
