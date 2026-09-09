@@ -324,7 +324,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @param {AuthorizationRequest} auth - The authorization request.
    * @returns {Promise<Authorization>} The signed authorization.
-   * @throws {Error} If the chainId or nonce are not provided and the wallet is not connected to a provider.
+   * @throws {ProviderRequiredError} If the chainId or nonce are not provided and the wallet is not connected to a provider.
    */
   async signAuthorization (auth) {
     const populated = { ...auth }
