@@ -22,7 +22,7 @@ import MemorySafeHDNodeWallet from '../memory-safe/hd-node-wallet.js'
 // Relative BIP-44 prefix for Ethereum (purpose'/coin_type'). Exported so callers that want
 // "the standard Ethereum path" (WalletAccountEvm's seed overload, WalletManagerEvm's own
 // internal default signer) can compose an absolute path without hardcoding it themselves.
-export const BIP_44_ETH_DERIVATION_PATH_PREFIX = "44'/60'"
+export const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
 
 // Full absolute path of the account derived when none is provided.
 const DEFAULT_ACCOUNT_PATH = `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}/0'/0/0`
