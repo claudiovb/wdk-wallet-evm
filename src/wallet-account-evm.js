@@ -328,7 +328,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    */
   async signAuthorization (auth) {
     const populated = { ...auth }
-    if (populated.chainId == null || populated.nonce == null) {
+    if (populated.chainId === undefined || populated.nonce === undefined) {
       if (!this._provider) {
         throw new Error('The wallet must be connected to a provider to populate the authorization chainId and nonce. Provide them explicitly to sign offline.')
       }
