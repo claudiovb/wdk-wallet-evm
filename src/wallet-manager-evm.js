@@ -83,7 +83,7 @@ export default class WalletManagerEvm extends WalletManager {
     const isSeed = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
     let signer = seedOrSigner
     if (isSeed) {
-      signer = new SeedSignerEvm(seedOrSigner, `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}`)
+      signer = new SeedSignerEvm(seedOrSigner, BIP_44_ETH_DERIVATION_PATH_PREFIX)
     }
     if (!signer.isDerivable) {
       throw new InvalidSignerError('The default signer must be derivable. Non-derivable signers (e.g. private-key signers) can only be registered by name via addSigner.')

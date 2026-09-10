@@ -19,12 +19,11 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
     /** @private */
     private _address;
     /**
-     * Whether this signer can derive child signers. Always false: a private-key signer is a
-     * single standalone account and is bound directly to a wallet account.
+     * Whether this signer can derive child signers.
      *
-     * @type {boolean}
+     * @type {false}
      */
-    get isDerivable(): boolean;
+    get isDerivable(): false;
     /**
      * The BIP 0044 derivation path.
      *

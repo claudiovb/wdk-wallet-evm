@@ -15,9 +15,8 @@ export default class SeedSignerEvm implements ISignerEvm {
      * Create a SeedSignerEvm from a BIP-39 seed.
      *
      * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
-     * @param {string} [path] - Absolute BIP-32 path (e.g. "m/44'/60'/0'/0/0"). Defaults to the Ethereum BIP-44 account at index 0.
-     * @throws {ValueError} If no seed is provided.
-     * @throws {ValueError} If a seed is provided but is not a valid BIP-39 mnemonic.
+     * @param {string} [path] - A BIP-32 path (default: "m/44'/60'/0'/0/0").
+     * @throws {ValueError} If the given seed is an invalid byte sequence or BIP-39 seed phrase.
      */
     constructor(seed: string | Uint8Array, path?: string);
     /** @private */
@@ -129,4 +128,4 @@ export type TypedData = import("../wallet-account-read-only-evm.js").TypedData;
  * "the standard Ethereum path" (WalletAccountEvm's seed overload, WalletManagerEvm's own
  * internal default signer) can compose an absolute path without hardcoding it themselves.
  */
-export const BIP_44_ETH_DERIVATION_PATH_PREFIX: "44'/60'";
+export const BIP_44_ETH_DERIVATION_PATH_PREFIX: "m/44'/60'";

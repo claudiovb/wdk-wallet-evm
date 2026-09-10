@@ -60,7 +60,7 @@ export default class PrivateKeySignerEvm {
    *
    * @type {false}
    */
-  get isDerivable () { 
+  get isDerivable () {
     return false
   }
 

@@ -16,6 +16,8 @@
 
 import { Contract, VoidSigner, Transaction, ZeroAddress } from 'ethers'
 
+import { ProviderRequiredError } from '@tetherto/wdk-wallet'
+
 import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 
 import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed-signer-evm.js'
@@ -77,7 +79,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   constructor (seedOrSigner, pathOrConfig = {}, config = {}) {
     const isSeed = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
     const [signer, configuration] = isSeed
-      ? [new SeedSignerEvm(seedOrSigner, `m/${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${pathOrConfig}`), config]
+      ? [new SeedSignerEvm(seedOrSigner, `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${pathOrConfig}`), config]
       : [seedOrSigner, pathOrConfig]
 
     super(signer.address, configuration)
@@ -330,7 +332,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
     const populated = { ...auth }
     if (populated.chainId === undefined || populated.nonce === undefined) {
       if (!this._provider) {
-        throw new Error('The wallet must be connected to a provider to populate the authorization chainId and nonce. Provide them explicitly to sign offline.')
+        throw new ProviderRequiredError('The wallet must be connected to a provider to populate the authorization chainId and nonce. Provide them explicitly to sign offline.')
       }
       if (populated.chainId == null) {
         const { chainId } = await this._provider.getNetwork()

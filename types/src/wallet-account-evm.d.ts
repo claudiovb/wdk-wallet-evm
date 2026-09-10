@@ -137,7 +137,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      *
      * @param {AuthorizationRequest} auth - The authorization request.
      * @returns {Promise<Authorization>} The signed authorization.
-     * @throws {Error} If the chainId or nonce are not provided and the wallet is not connected to a provider.
+     * @throws {ProviderRequiredError} If the chainId or nonce are not provided and the wallet is not connected to a provider.
      */
     signAuthorization(auth: AuthorizationRequest): Promise<Authorization>;
     /**
@@ -172,6 +172,7 @@ export type Authorization = import("ethers").Authorization;
 export type AuthorizationLike = import("ethers").AuthorizationLike;
 export type IWalletAccount<TSignedTransaction> = import("@tetherto/wdk-wallet").IWalletAccount<TSignedTransaction>;
 export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
+export type ProviderRequiredError = import("@tetherto/wdk-wallet").ProviderRequiredError;
 export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
 export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
 export type TypedData = import("./wallet-account-read-only-evm.js").TypedData;
