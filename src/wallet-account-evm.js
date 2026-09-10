@@ -16,7 +16,7 @@
 
 import { Contract, VoidSigner, Transaction, ZeroAddress } from 'ethers'
 
-import { ProviderRequiredError } from '@tetherto/wdk-wallet'
+import { MaximumFeeExceededError, ProviderRequiredError, ValueError } from '@tetherto/wdk-wallet'
 
 import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 
@@ -175,14 +175,14 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @param {EvmTransaction} tx - The transaction to sign.
    * @returns {Promise<string>} The signed transaction as a hex string.
-   * @throws {Error} If a provider is set, and the transaction's cost surpasses the transaction max. fee option.
+   * @throws {MaximumFeeExceededError} If a provider is set, and the transaction's cost surpasses the transaction max. fee option.
    */
   async signTransaction (tx) {
     if (this._provider && this._config.transactionMaxFee !== undefined) {
       const { fee } = await this.quoteSendTransaction(tx)
 
       if (fee > this._config.transactionMaxFee) {
-        throw new Error('Exceeded maximum fee cost for transaction operation.')
+        throw new MaximumFeeExceededError('Exceeded maximum fee cost for transaction operation.')
       }
     }
     return await this._signer.signTransaction({
@@ -194,18 +194,47 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Sends a transaction.
    *
-   * @param {EvmTransaction | string} tx - The transaction.
+   * @param {EvmTransaction | string} tx - The transaction, or a signed raw transaction as a hex string.
    * @returns {Promise<TransactionResult>} The transaction's result.
-   * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {MaximumFeeExceededError} If the transaction's cost exceeds the maximum transaction fee option.
+   * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
    */
   async sendTransaction (tx) {
     if (!this._provider) {
-      throw new Error('The wallet must be connected to a provider to send transactions.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to send transactions.')
     }
+
+    if (typeof tx !== 'string') {
+      const has1559 = tx.maxFeePerGas != null || tx.maxPriorityFeePerGas != null
+      const hasLegacy = tx.gasPrice != null
+      const hasBlobs = tx.blobs != null || tx.blobVersionedHashes != null || tx.maxFeePerBlobGas != null
+      const explicitType = (tx.type != null) ? Number(tx.type) : null
+
+      if ((explicitType === 2 || (explicitType == null && has1559)) && hasLegacy) {
+        throw new ValueError('eip-1559 transaction does not support gasPrice')
+      }
+      if ((explicitType === 0 || explicitType === 1) && has1559) {
+        throw new ValueError('pre-eip-1559 transaction does not support maxFeePerGas/maxPriorityFeePerGas')
+      }
+      if ((explicitType === 3 || hasBlobs) && hasLegacy) {
+        throw new ValueError('blob transaction does not support gasPrice')
+      }
+      if ((explicitType === 3 || hasBlobs) && tx.maxFeePerBlobGas == null) {
+        throw new ValueError('maxFeePerBlobGas is required for type 3 transactions')
+      }
+    }
+
     const { fee } = await this.quoteSendTransaction(tx)
     if (this._config.transactionMaxFee !== undefined && fee > this._config.transactionMaxFee) {
-      throw new Error('Exceeded maximum fee cost for transaction operation.')
+      throw new MaximumFeeExceededError('Exceeded maximum fee cost for transaction operation.')
     }
+
+    if (typeof tx === 'string') {
+      const hash = await this._provider.send('eth_sendRawTransaction', [tx])
+      return { hash, fee }
+    }
+
     // Build, sign and broadcast raw transaction using the signer
     const address = await this.getAddress()
     const voidSigner = new VoidSigner(address, this._provider)
@@ -218,13 +247,14 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Quotes the costs of a send transaction operation.
    *
-   * @param {EvmTransaction | string} tx - The transaction.
+   * @param {EvmTransaction | string} tx - The transaction, or a signed raw transaction as a hex string.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async quoteSendTransaction (tx) {
     if (typeof tx === 'string') {
       if (!this._provider) {
-        throw new Error('The wallet must be connected to a provider to quote send transaction operations.')
+        throw new ProviderRequiredError('The wallet must be connected to a provider to quote send transaction operations.')
       }
 
       const { from, to, value, data, gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas, type, nonce, chainId, authorizationList } = Transaction.from(tx)
@@ -250,11 +280,12 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @param {EvmTransferOptions} options - The transfer's options.
    * @returns {Promise<TransferResult>} The transfer's result.
-   * @throws {Error} If the transfer's cost exceeds the maximum transfer fee option.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {MaximumFeeExceededError} If the transfer's cost exceeds the maximum transfer fee option.
    */
   async transfer (options) {
     if (!this._provider) {
-      throw new Error('The wallet must be connected to a provider to transfer tokens.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to transfer tokens.')
     }
 
     const tx = await WalletAccountEvm._getTransferTransaction(options)
@@ -262,7 +293,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
     const { fee } = await this.quoteSendTransaction(tx)
 
     if (this._config.transferMaxFee !== undefined && fee > this._config.transferMaxFee) {
-      throw new Error('Exceeded maximum fee cost for transfer operation.')
+      throw new MaximumFeeExceededError('Exceeded maximum fee cost for transfer operation.')
     }
 
     const { hash } = await this.sendTransaction(tx)
@@ -275,11 +306,12 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @param {ApproveOptions} options The approve options.
    * @returns {Promise<TransactionResult>} The transaction's result.
-   * @throws {Error} If trying to approve usdts on ethereum with allowance not equal to zero (due to the usdt allowance reset requirement).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {ValueError} If trying to approve usdts on ethereum with allowance not equal to zero (due to the usdt allowance reset requirement).
    */
   async approve (options) {
     if (!this._provider) {
-      throw new Error('The wallet must be connected to a provider to approve funds.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to approve funds.')
     }
 
     const { token, spender, amount } = options
@@ -288,7 +320,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
     if (chainId === 1n && token.toLowerCase() === USDT_MAINNET_ADDRESS.toLowerCase()) {
       const currentAllowance = await this.getAllowance(token, spender)
       if (currentAllowance > 0n && BigInt(amount) > 0n) {
-        throw new Error(
+        throw new ValueError(
           'USDT requires the current allowance to be reset to 0 before setting a new non-zero value. Please send an "approve" transaction with an amount of 0 first.'
         )
       }
@@ -355,10 +387,11 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @param {string} delegateAddress - The address of the contract to delegate to.
    * @returns {Promise<TransactionResult>} The transaction result.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async delegate (delegateAddress) {
     if (!this._provider) {
-      throw new Error('The wallet must be connected to a provider to delegate.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to delegate.')
     }
 
     const address = await this.getAddress()

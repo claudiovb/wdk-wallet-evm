@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
+import { InvalidSignerError, NoSuchElementError, ProviderRequiredError, UnsupportedOperationError } from '@tetherto/wdk-wallet'
+
 import WalletManagerEvm, { WalletAccountEvm } from '../index.js'
 import SeedSignerEvm from '../src/signers/seed-signer-evm.js'
 import PrivateKeySignerEvm from '../src/signers/private-key-signer-evm.js'
@@ -60,12 +62,16 @@ describe('WalletManagerEvm', () => {
   describe('constructor', () => {
     test('should throw if the default signer is not derivable', () => {
       expect(() => new WalletManagerEvm(new PrivateKeySignerEvm(PRIVATE_KEY))) // eslint-disable-line no-new
+        .toThrow(InvalidSignerError)
+      expect(() => new WalletManagerEvm(new PrivateKeySignerEvm(PRIVATE_KEY))) // eslint-disable-line no-new
         .toThrow('The default signer must be derivable.')
     })
 
     test('should throw if the default signer is a bare ISigner without isDerivable', () => {
       const bareSigner = { derive: async () => {}, signTransaction: async () => {}, getAddress: async () => '0x0', dispose: () => {} }
 
+      expect(() => new WalletManagerEvm(bareSigner)) // eslint-disable-line no-new
+        .toThrow(InvalidSignerError)
       expect(() => new WalletManagerEvm(bareSigner)) // eslint-disable-line no-new
         .toThrow('The default signer must be derivable.')
     })
@@ -110,8 +116,10 @@ describe('WalletManagerEvm', () => {
     })
 
     test('should throw if the named signer does not exist', async () => {
-      await expect(wallet.getAccount(0, { signerName: 'missing' }))
-        .rejects.toThrow('No signer found with name "missing".')
+      const promise = wallet.getAccount(0, { signerName: 'missing' })
+
+      await expect(promise).rejects.toThrow(NoSuchElementError)
+      await expect(promise).rejects.toThrow('No signer found with name "missing".')
     })
 
     test('should return the account of a named private key signer (string overload)', async () => {
@@ -124,8 +132,10 @@ describe('WalletManagerEvm', () => {
     })
 
     test('should throw if the named signer does not exist (string overload)', async () => {
-      await expect(wallet.getAccount('missing'))
-        .rejects.toThrow('No signer found with name "missing".')
+      const promise = wallet.getAccount('missing')
+
+      await expect(promise).rejects.toThrow(NoSuchElementError)
+      await expect(promise).rejects.toThrow('No signer found with name "missing".')
     })
 
     test('should use the named signer as given without taking ownership of it', async () => {
@@ -179,8 +189,10 @@ describe('WalletManagerEvm', () => {
     test('should throw when deriving from a named private key signer', async () => {
       wallet.addSigner('hot', new PrivateKeySignerEvm(PRIVATE_KEY))
 
-      await expect(wallet.getAccountByPath("0'/0/0", { signerName: 'hot' }))
-        .rejects.toThrow("Method 'derive(path)' is not supported.")
+      const promise = wallet.getAccountByPath("0'/0/0", { signerName: 'hot' })
+
+      await expect(promise).rejects.toThrow(UnsupportedOperationError)
+      await expect(promise).rejects.toThrow("Method 'derive(path)' is not supported.")
     })
   })
 
@@ -274,8 +286,10 @@ describe('WalletManagerEvm', () => {
     test('should throw if the wallet is not connected to a provider', async () => {
       const wallet = new WalletManagerEvm(SEED_PHRASE)
 
-      await expect(wallet.getFeeRates())
-        .rejects.toThrow('The wallet must be connected to a provider to get fee rates.')
+      const promise = wallet.getFeeRates()
+
+      await expect(promise).rejects.toThrow(ProviderRequiredError)
+      await expect(promise).rejects.toThrow('The wallet must be connected to a provider to get fee rates.')
     })
 
     test('should throw if the provider does not return any fee data', async () => {

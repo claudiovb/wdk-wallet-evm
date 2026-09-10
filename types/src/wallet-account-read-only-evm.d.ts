@@ -41,6 +41,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      * Returns the account's eth balance.
      *
      * @returns {Promise<bigint>} The eth balance (in weis).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getBalance(): Promise<bigint>;
     /**
@@ -48,6 +49,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      *
      * @param {string} tokenAddress - The smart contract address of the token.
      * @returns {Promise<bigint>} The token balance (in base unit).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getTokenBalance(tokenAddress: string): Promise<bigint>;
     /**
@@ -55,6 +57,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      *
      * @param {string[]} tokenAddresses - The smart contract addresses of the tokens.
      * @returns {Promise<Record<string, bigint>>} A mapping of token addresses to their balances (in base units).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getTokenBalances(tokenAddresses: string[]): Promise<Record<string, bigint>>;
     /**
@@ -62,6 +65,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      *
      * @param {EvmTransaction} tx - The transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     quoteSendTransaction(tx: EvmTransaction): Promise<Omit<TransactionResult, "hash">>;
     /**
@@ -69,6 +73,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      *
      * @param {EvmTransferOptions} options - The transfer's options.
      * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     quoteTransfer(options: EvmTransferOptions): Promise<Omit<TransferResult, "hash">>;
     /**
@@ -77,6 +82,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      * @deprecated Use {@link getTransaction} instead, which returns a normalized, finality-based receipt. The raw ethers receipt remains available on its `receipt` property.
      * @param {string} hash - The transaction's hash.
      * @returns {Promise<EvmTransactionReceipt | null>} – The receipt, or null if the transaction has not been included in a block yet.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getTransactionReceipt(hash: string): Promise<EvmTransactionReceipt | null>;
     /**
@@ -84,6 +90,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      *
      * @param {string} hash - The transaction's hash.
      * @returns {Promise<TransactionReceipt & EvmTransactionDetails>} The normalized receipt.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      * @throws {ValueError} If the hash is not a valid transaction hash.
      * @throws {NoSuchElementError} If no transaction has been found for the given hash.
      */
@@ -124,6 +131,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      * @param {string} token The token's address.
      * @param {string} spender The spender's address.
      * @returns {Promise<bigint>} The allowance.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getAllowance(token: string, spender: string): Promise<bigint>;
     /**
@@ -146,6 +154,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      * Checks if this account has an active ERC-7702 delegation.
      *
      * @returns {Promise<DelegationInfo>} The delegation info.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getDelegation(): Promise<DelegationInfo>;
     /** @private */

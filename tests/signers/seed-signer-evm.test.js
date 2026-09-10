@@ -2,6 +2,8 @@ import * as bip39 from 'bip39'
 
 import { describe, expect, test } from '@jest/globals'
 
+import { InvalidSignerError, ValueError } from '@tetherto/wdk-wallet'
+
 import SeedSignerEvm from '../../src/signers/seed-signer-evm.js'
 
 const VALID_SEED_PHRASE = 'cook voyage document eight skate token alien guide drink uncle term abuse'
@@ -87,6 +89,8 @@ describe('SeedSignerEvm', () => {
 
     test('should throw if the seed phrase is invalid', () => {
       expect(() => { new SeedSignerEvm('invalid seed phrase') }) // eslint-disable-line no-new
+        .toThrow(ValueError)
+      expect(() => { new SeedSignerEvm('invalid seed phrase') }) // eslint-disable-line no-new
         .toThrow('The seed phrase is invalid.')
     })
 
@@ -167,7 +171,10 @@ describe('SeedSignerEvm', () => {
       const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
       root.dispose()
 
-      await expect(root.derive("0'/0/0")).rejects.toThrow('Cannot derive: the signer has been disposed.')
+      const promise = root.derive("0'/0/0")
+
+      await expect(promise).rejects.toThrow(InvalidSignerError)
+      await expect(promise).rejects.toThrow('Cannot derive: the signer has been disposed.')
     })
 
     test('should let a derived child derive further, one independent key per signer', async () => {

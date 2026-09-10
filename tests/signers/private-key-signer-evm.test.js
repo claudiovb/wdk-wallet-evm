@@ -1,5 +1,7 @@
 import { describe, expect, test } from '@jest/globals'
 
+import { UnsupportedOperationError } from '@tetherto/wdk-wallet'
+
 import PrivateKeySignerEvm from '../../src/signers/private-key-signer-evm.js'
 
 const VALID_PRIVATE_KEY = '260905feebf1ec684f36f1599128b85f3a26c2b817f2065a2fc278398449c41f'
@@ -90,7 +92,10 @@ describe('PrivateKeySignerEvm', () => {
     test('should throw when calling derive', async () => {
       const signer = new PrivateKeySignerEvm(VALID_PRIVATE_KEY)
 
-      await expect(signer.derive("0'/0/0")).rejects.toThrow("Method 'derive(path)' is not supported.")
+      const promise = signer.derive("0'/0/0")
+
+      await expect(promise).rejects.toThrow(UnsupportedOperationError)
+      await expect(promise).rejects.toThrow("Method 'derive(path)' is not supported.")
 
       signer.dispose()
     })

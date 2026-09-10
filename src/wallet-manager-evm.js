@@ -14,7 +14,7 @@
 
 'use strict'
 
-import WalletManager, { InvalidSignerError } from '@tetherto/wdk-wallet'
+import WalletManager, { InvalidSignerError, ProviderRequiredError } from '@tetherto/wdk-wallet'
 
 import { BrowserProvider, JsonRpcProvider } from 'ethers'
 
@@ -28,7 +28,6 @@ import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed
 
 /** @typedef {import("@tetherto/wdk-wallet").FeeRates} FeeRates */
 /** @typedef {import("@tetherto/wdk-wallet").ISigner} ISigner */
-/** @typedef {import("@tetherto/wdk-wallet").InvalidSignerError} InvalidSignerError */
 /** @typedef {import("@tetherto/wdk-wallet").NoSuchElementError} NoSuchElementError */
 /** @typedef {import("@tetherto/wdk-wallet").ValueError} ValueError */
 
@@ -214,10 +213,11 @@ export default class WalletManagerEvm extends WalletManager {
    * Returns the current fee rates.
    *
    * @returns {Promise<FeeRates>} The fee rates (in weis).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async getFeeRates () {
     if (!this._provider) {
-      throw new Error('The wallet must be connected to a provider to get fee rates.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to get fee rates.')
     }
 
     const data = await this._provider.getFeeData()
