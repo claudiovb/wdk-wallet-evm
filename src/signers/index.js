@@ -11,15 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// src/signers/index.js
-/**
- * Barrel exports for EVM signers.
- *
- * - `ISignerEvm`: the interface implemented by all EVM signers.
- * - `SeedSignerEvm`: derives accounts from a BIP-39 seed (BIP-44 path).
- * - `PrivateKeySignerEvm`: memory-safe wrapper around a raw private key.
- */
-
 export { ISignerEvm } from './signer-evm.js'
 export { default, default as SeedSignerEvm } from './seed-signer-evm.js'
 export { default as PrivateKeySignerEvm } from './private-key-signer-evm.js'

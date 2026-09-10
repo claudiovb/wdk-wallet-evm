@@ -234,7 +234,7 @@ export default class WalletManagerEvm extends WalletManager {
     * Disposes all the wallet accounts, erasing their private keys from the memory.
    */
   dispose () {
-    if (this._shouldWipeDefaultSignerOnDisposal && this._defaultSigner) {
+    if (this._shouldWipeDefaultSignerOnDisposal) {
       this._defaultSigner.dispose()
     }
 

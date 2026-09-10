@@ -180,7 +180,7 @@ describe('WalletManagerEvm', () => {
       wallet.addSigner('hot', new PrivateKeySignerEvm(PRIVATE_KEY))
 
       await expect(wallet.getAccountByPath("0'/0/0", { signerName: 'hot' }))
-        .rejects.toThrow('PrivateKeySignerEvm does not support derivation.')
+        .rejects.toThrow("Method 'derive(path)' is not supported.")
     })
   })
 
@@ -208,14 +208,14 @@ describe('WalletManagerEvm', () => {
       for (const account of [account0, account1]) {
         expect(account.keyPair.privateKey).toBe(null)
 
-        // Once disposed, the underlying signer is cleared, so any signing operation
-        // fails when it reaches the now-undefined signer rather than for some other reason.
+        // Once disposed, the signer keeps its (neutered) HD node, so any signing
+        // operation fails inside the crypto layer when it reads the wiped private key.
         await expect(account.sign(MESSAGE))
-          .rejects.toThrow(/Cannot read properties of undefined \(reading 'signMessage'\)/)
+          .rejects.toThrow(/Uint8Array expected/)
         await expect(account.sendTransaction(TRANSACTION))
-          .rejects.toThrow(/Cannot read properties of undefined \(reading 'signTransaction'\)/)
+          .rejects.toThrow(/Uint8Array expected/)
         await expect(account.transfer(TRANSFER))
-          .rejects.toThrow(/Cannot read properties of undefined \(reading 'signTransaction'\)/)
+          .rejects.toThrow(/Uint8Array expected/)
       }
     })
 

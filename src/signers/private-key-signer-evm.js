@@ -15,12 +15,13 @@
 
 import { BaseWallet } from 'ethers'
 
-import { InvalidSignerError } from '@tetherto/wdk-wallet'
+import { UnsupportedOperationError } from '@tetherto/wdk-wallet'
 
 import MemorySafeSigningKey from '../memory-safe/signing-key.js'
 
 /** @typedef {import('./signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
+/** @typedef {import('@tetherto/wdk-wallet').ValueError} ValueError */
 /** @typedef {import('ethers').TransactionLike} TransactionLike */
 /** @typedef {import('ethers').AuthorizationRequest} AuthorizationRequest */
 /** @typedef {import('ethers').Authorization} Authorization */
@@ -37,20 +38,21 @@ export default class PrivateKeySignerEvm {
   /**
    * Create a signer from a raw private key.
    *
-   * @param {string|Uint8Array} privateKey - Hex string (with/without 0x) or raw key bytes.
+   * @param {string | Uint8Array} privateKey - The private key's hex string or byte sequence.
    */
   constructor (privateKey) {
-    // Expect a Uint8Array buffer; accept hex string as convenience
-    let privateKeyBuffer = privateKey
     if (typeof privateKey === 'string') {
       const hex = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey
-      privateKeyBuffer = new Uint8Array(Buffer.from(hex, 'hex'))
+
+      privateKey = Buffer.from(hex, 'hex')
     }
 
     /** @private */
-    this._signingKey = new MemorySafeSigningKey(privateKeyBuffer)
+    this._signingKey = new MemorySafeSigningKey(privateKey)
+
     /** @private */
-    this._wallet = new BaseWallet(this._signingKey, null)
+    this._wallet = new BaseWallet(this._signingKey)
+
     /** @private */
     this._address = this._wallet.address
   }
@@ -85,18 +87,21 @@ export default class PrivateKeySignerEvm {
    */
   get keyPair () {
     return {
-      privateKey: this._signingKey ? this._signingKey.privateKeyBuffer : null,
-      publicKey: this._signingKey ? this._signingKey.publicKeyBuffer : null
+      privateKey: this._signingKey.privateKeyBuffer ?? null,
+      publicKey: this._signingKey.publicKeyBuffer
     }
   }
 
   /**
-   * PrivateKeySignerEvm is not a hierarchical signer and cannot derive.
-   * @returns {Promise<never>}
-   * @throws {InvalidSignerError} Always — private-key signers do not support derivation.
+   * Derive a child signer using a relative path (e.g., "0'/0/0").
+   *
+   * @param {string} path - The relative derivation path.
+   * @returns {Promise<never>} The derived signer.
+   * @throws {UnsupportedOperationError} If the signer does not support account derivation.
+   * @throws {ValueError} If the path is not valid.
    */
-  async derive () {
-    throw new InvalidSignerError('PrivateKeySignerEvm does not support derivation.')
+  async derive (path) {
+    throw new UnsupportedOperationError('derive(path)')
   }
 
   /**
@@ -152,8 +157,6 @@ export default class PrivateKeySignerEvm {
    * Disposes the signer, erasing its secrets from memory.
    */
   dispose () {
-    if (this._signingKey) this._signingKey.dispose()
-    this._signingKey = undefined
-    this._wallet = undefined
+    this._signingKey.dispose()
   }
 }

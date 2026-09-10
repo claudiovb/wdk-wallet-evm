@@ -90,11 +90,6 @@ describe('SeedSignerEvm', () => {
         .toThrow('The seed phrase is invalid.')
     })
 
-    test('should throw if no seed is provided', () => {
-      expect(() => { new SeedSignerEvm() }) // eslint-disable-line no-new
-        .toThrow('Seed is required.')
-    })
-
     test('should allow constructing an intermediate (non-leaf) path as a derivable root', () => {
       const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'")
 

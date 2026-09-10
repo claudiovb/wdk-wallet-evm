@@ -7,31 +7,23 @@
  * @implements {ISignerEvm}
  */
 export default class SeedSignerEvm implements ISignerEvm {
-    /** @private */
-    private static _normalizeSeed;
-    /** @private */
-    private static _init;
     /**
      * Create a SeedSignerEvm from a BIP-39 seed.
      *
      * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
      * @param {string} [path] - A BIP-32 path (default: "m/44'/60'/0'/0/0").
-     * @throws {ValueError} If the given seed is an invalid byte sequence or BIP-39 seed phrase.
+     * @throws {ValueError} If the given seed phrase is invalid.
      */
     constructor(seed: string | Uint8Array, path?: string);
     /** @private */
     private _account;
-    /** @private */
-    private _address;
-    /** @private */
-    private _path;
     /**
      * Whether this signer can derive child signers. Always true: every seed signer holds an
      * HD node with a private key and can derive below its own path.
      *
-     * @type {boolean}
+     * @type {true}
      */
-    get isDerivable(): boolean;
+    get isDerivable(): true;
     /**
      * The signer's absolute derivation path.
      *
@@ -124,8 +116,10 @@ export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;
 export type TypedData = import("../wallet-account-read-only-evm.js").TypedData;
 /**
- * Relative BIP-44 prefix for Ethereum (purpose'/coin_type'). Exported so callers that want
+ * Absolute BIP-44 prefix for Ethereum (m/purpose'/coin_type'). Exported so callers that want
  * "the standard Ethereum path" (WalletAccountEvm's seed overload, WalletManagerEvm's own
  * internal default signer) can compose an absolute path without hardcoding it themselves.
+ *
+ * @internal
  */
 export const BIP_44_ETH_DERIVATION_PATH_PREFIX: "m/44'/60'";

@@ -90,7 +90,7 @@ describe('PrivateKeySignerEvm', () => {
     test('should throw when calling derive', async () => {
       const signer = new PrivateKeySignerEvm(VALID_PRIVATE_KEY)
 
-      await expect(signer.derive("0'/0/0")).rejects.toThrow('PrivateKeySignerEvm does not support derivation.')
+      await expect(signer.derive("0'/0/0")).rejects.toThrow("Method 'derive(path)' is not supported.")
 
       signer.dispose()
     })

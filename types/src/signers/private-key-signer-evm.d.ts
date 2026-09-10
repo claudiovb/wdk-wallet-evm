@@ -9,7 +9,7 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
     /**
      * Create a signer from a raw private key.
      *
-     * @param {string|Uint8Array} privateKey - Hex string (with/without 0x) or raw key bytes.
+     * @param {string | Uint8Array} privateKey - The private key's hex string or byte sequence.
      */
     constructor(privateKey: string | Uint8Array);
     /** @private */
@@ -43,9 +43,18 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
      */
     get keyPair(): KeyPair;
     /**
-     * PrivateKeySignerEvm is not a hierarchical signer and cannot derive.
-     * @returns {Promise<never>}
-     * @throws {InvalidSignerError} Always — private-key signers do not support derivation.
+     * Derive a child signer using a relative path (e.g., "0'/0/0").
+     *
+     * @param {string} path - The relative derivation path.
+     * @returns {Promise<never>} The derived signer.
+     * @throws {UnsupportedOperationError} If the signer does not support account derivation.
+     * @throws {ValueError} If the path is not valid.
+     */
+    derive(path: string): Promise<never>;
+    /**
+     * Returns the account's address.
+     *
+     * @returns {Promise<string>} The account's address.
      */
     getAddress(): Promise<string>;
     /**
@@ -83,7 +92,8 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
 }
 export type ISignerEvm = import("./signer-evm.js").ISignerEvm;
 export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
-export type InvalidSignerError = import("@tetherto/wdk-wallet").InvalidSignerError;
+export type UnsupportedOperationError = import("@tetherto/wdk-wallet").UnsupportedOperationError;
+export type ValueError = import("@tetherto/wdk-wallet").ValueError;
 export type TransactionLike = import("ethers").TransactionLike;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;
 export type Authorization = import("ethers").Authorization;

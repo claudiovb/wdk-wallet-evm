@@ -38,6 +38,7 @@
 /** @typedef {import('./src/wallet-account-read-only-evm.js').EvmTransactionDetails} EvmTransactionDetails */
 
 /** @typedef {import('./src/wallet-account-evm.js').ApproveOptions} ApproveOptions */
+/** @typedef {import('./src/wallet-account-evm.js').SignerOptions} SignerOptions */
 
 export { default } from './src/wallet-manager-evm.js'
 

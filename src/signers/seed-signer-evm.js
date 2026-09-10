@@ -19,14 +19,6 @@ import { InvalidSignerError, ValueError } from '@tetherto/wdk-wallet'
 
 import MemorySafeHDNodeWallet from '../memory-safe/hd-node-wallet.js'
 
-// Absolute BIP-44 prefix for Ethereum (m/purpose'/coin_type'). Exported so callers that want
-// "the standard Ethereum path" (WalletAccountEvm's seed overload, WalletManagerEvm's own
-// internal default signer) can compose an absolute path without hardcoding it themselves.
-export const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
-
-// Full absolute path of the account derived when none is provided.
-const DEFAULT_ACCOUNT_PATH = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/0'/0/0`
-
 /** @typedef {import('./signer-evm.js').ISignerEvm} ISignerEvm */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('ethers').TransactionLike} TransactionLike */
@@ -34,6 +26,18 @@ const DEFAULT_ACCOUNT_PATH = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/0'/0/0`
 /** @typedef {import('ethers').Authorization} Authorization */
 /** @typedef {import('../wallet-account-read-only-evm.js').TypedData} TypedData */
 /** @typedef {import('../memory-safe/hd-node-wallet.js').default} MemorySafeHDNodeWallet */
+
+/**
+ * Absolute BIP-44 prefix for Ethereum (m/purpose'/coin_type'). Exported so callers that want
+ * "the standard Ethereum path" (WalletAccountEvm's seed overload, WalletManagerEvm's own
+ * internal default signer) can compose an absolute path without hardcoding it themselves.
+ *
+ * @internal
+ */
+export const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
+
+// Full absolute path of the account derived when none is provided.
+const DEFAULT_ACCOUNT_PATH = `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/0'/0/0`
 
 /**
  * Signer implementation that derives keys from a BIP-39 seed using an HD path. Every signer
@@ -49,26 +53,30 @@ export default class SeedSignerEvm {
    *
    * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
    * @param {string} [path] - A BIP-32 path (default: "m/44'/60'/0'/0/0").
-   * @throws {ValueError} If the given seed is an invalid byte sequence or BIP-39 seed phrase.
+   * @throws {ValueError} If the given seed phrase is invalid.
    */
   constructor (seed, path = DEFAULT_ACCOUNT_PATH) {
-    if (!seed) {
-      throw new ValueError('Seed is required.')
+    if (typeof seed === 'string') {
+      if (!bip39.validateMnemonic(seed)) {
+        throw new ValueError('The seed phrase is invalid.')
+      }
+
+      seed = bip39.mnemonicToSeedSync(seed)
     }
 
-    const root = MemorySafeHDNodeWallet.fromSeed(SeedSignerEvm._normalizeSeed(seed))
+    const root = MemorySafeHDNodeWallet.fromSeed(seed)
     const account = root.derivePath(path)
-    // derivePath returns the root itself when path is "m"; scrub the master key
-    // whenever the signer sits below it, so no signer keeps the root alive.
     if (account !== root) root.dispose()
-    SeedSignerEvm._init(this, account)
+
+    /** @private */
+    this._account = account
   }
 
   /**
    * Whether this signer can derive child signers. Always true: every seed signer holds an
    * HD node with a private key and can derive below its own path.
    *
-   * @type {boolean}
+   * @type {true}
    */
   get isDerivable () {
     return true
@@ -80,7 +88,7 @@ export default class SeedSignerEvm {
    * @type {string}
    */
   get path () {
-    return this._path
+    return this._account.path
   }
 
   /**
@@ -89,7 +97,7 @@ export default class SeedSignerEvm {
    * @type {string}
    */
   get address () {
-    return this._address
+    return this._account.address
   }
 
   /**
@@ -99,8 +107,8 @@ export default class SeedSignerEvm {
    */
   get keyPair () {
     return {
-      privateKey: this._account ? this._account.privateKeyBuffer : null,
-      publicKey: this._account ? this._account.publicKeyBuffer : null
+      privateKey: this._account.privateKeyBuffer ?? null,
+      publicKey: this._account.publicKeyBuffer
     }
   }
 
@@ -115,11 +123,12 @@ export default class SeedSignerEvm {
    * @throws {InvalidSignerError} If the signer has been disposed.
    */
   async derive (relPath) {
-    if (!this._account) {
+    if (!this._account.privateKeyBuffer) {
       throw new InvalidSignerError('Cannot derive: the signer has been disposed.')
     }
+
     const signer = Object.create(SeedSignerEvm.prototype)
-    SeedSignerEvm._init(signer, this._account.derivePath(relPath))
+    signer._account = this._account.derivePath(relPath)
     return signer
   }
 
@@ -129,7 +138,7 @@ export default class SeedSignerEvm {
    * @returns {Promise<string>} The account's address.
    */
   async getAddress () {
-    return this._address
+    return this._account.address
   }
 
   /**
@@ -176,23 +185,6 @@ export default class SeedSignerEvm {
    * Disposes the signer, erasing its secrets from memory.
    */
   dispose () {
-    if (this._account) this._account.dispose()
-    this._account = undefined
-  }
-
-  /** @private */
-  static _normalizeSeed (seed) {
-    if (typeof seed !== 'string') return seed
-    if (!bip39.validateMnemonic(seed)) {
-      throw new ValueError('The seed phrase is invalid.')
-    }
-    return bip39.mnemonicToSeedSync(seed)
-  }
-
-  /** @private */
-  static _init (signer, account) {
-    signer._account = account
-    signer._address = account.address
-    signer._path = account.path
+    this._account.dispose()
   }
 }
