@@ -33,6 +33,8 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
     /**
      * The account's address.
      *
+     * @deprecated Use {@link getAddress} instead. This property will be removed in an upcoming
+     * release: not all signers (e.g. hardware signers) can expose the address synchronously.
      * @type {string}
      */
     get address(): string;

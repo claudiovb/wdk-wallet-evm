@@ -145,8 +145,10 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
 
   /**
    * The account's address, or undefined if the account's signer doesn't expose its address
-   * synchronously. Use {@link getAddress} to always resolve the address.
+   * synchronously.
    *
+   * @deprecated Use {@link getAddress} instead. This property will be removed in an upcoming
+   * release: not all signers (e.g. hardware signers) can expose the address synchronously.
    * @type {string | undefined}
    */
   get address () {

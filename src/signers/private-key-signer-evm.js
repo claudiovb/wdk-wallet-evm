@@ -76,6 +76,8 @@ export default class PrivateKeySignerEvm {
   /**
    * The account's address.
    *
+   * @deprecated Use {@link getAddress} instead. This property will be removed in an upcoming
+   * release: not all signers (e.g. hardware signers) can expose the address synchronously.
    * @type {string}
    */
   get address () { return this._address }

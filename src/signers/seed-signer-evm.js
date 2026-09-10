@@ -94,6 +94,8 @@ export default class SeedSignerEvm {
   /**
    * The account's derived address.
    *
+   * @deprecated Use {@link getAddress} instead. This property will be removed in an upcoming
+   * release: not all signers (e.g. hardware signers) can expose the address synchronously.
    * @type {string}
    */
   get address () {
