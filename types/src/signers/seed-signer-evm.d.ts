@@ -52,7 +52,6 @@ export default class SeedSignerEvm implements ISignerEvm {
      *
      * @param {string} relPath - The path segment to derive, relative to this signer's own path.
      * @returns {Promise<SeedSignerEvm>} The derived child signer.
-     * @throws {InvalidSignerError} If the signer has been disposed.
      */
     derive(relPath: string): Promise<SeedSignerEvm>;
     /**
@@ -111,7 +110,6 @@ export type MemorySafeHDNodeWallet = {
 };
 export type ISignerEvm = import("./signer-evm.js").ISignerEvm;
 export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
-export type InvalidSignerError = import("@tetherto/wdk-wallet").InvalidSignerError;
 export type ValueError = import("@tetherto/wdk-wallet").ValueError;
 export type TransactionLike = import("ethers").TransactionLike;
 export type AuthorizationRequest = import("ethers").AuthorizationRequest;

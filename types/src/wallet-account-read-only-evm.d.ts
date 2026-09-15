@@ -1,5 +1,13 @@
 export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
     /**
+     * Validates that a transaction does not mix fee fields its type doesn't support.
+     *
+     * @protected
+     * @param {EvmTransaction} tx - The transaction to validate.
+     * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
+     */
+    protected static _validateFeeFields(tx: EvmTransaction): void;
+    /**
      * Returns an evm transaction to execute the given token transfer.
      *
      * @protected
@@ -66,6 +74,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      * @param {EvmTransaction} tx - The transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
      * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
      */
     quoteSendTransaction(tx: EvmTransaction): Promise<Omit<TransactionResult, "hash">>;
     /**

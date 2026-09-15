@@ -206,26 +206,6 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
       throw new ProviderRequiredError('The wallet must be connected to a provider to send transactions.')
     }
 
-    if (typeof tx !== 'string') {
-      const has1559 = tx.maxFeePerGas !== undefined || tx.maxPriorityFeePerGas !== undefined
-      const hasLegacy = tx.gasPrice != null
-      const hasBlobs = tx.blobs != null || tx.blobVersionedHashes != null || tx.maxFeePerBlobGas != null
-      const explicitType = (tx.type != null) ? Number(tx.type) : null
-
-      if ((explicitType === 2 || (explicitType == null && has1559)) && hasLegacy) {
-        throw new ValueError('eip-1559 transaction does not support gasPrice')
-      }
-      if ((explicitType === 0 || explicitType === 1) && has1559) {
-        throw new ValueError('pre-eip-1559 transaction does not support maxFeePerGas/maxPriorityFeePerGas')
-      }
-      if ((explicitType === 3 || hasBlobs) && hasLegacy) {
-        throw new ValueError('blob transaction does not support gasPrice')
-      }
-      if ((explicitType === 3 || hasBlobs) && tx.maxFeePerBlobGas == null) {
-        throw new ValueError('maxFeePerBlobGas is required for type 3 transactions')
-      }
-    }
-
     const { fee } = await this.quoteSendTransaction(tx)
     if (this._config.transactionMaxFee !== undefined && fee > this._config.transactionMaxFee) {
       throw new MaximumFeeExceededError('Exceeded maximum fee cost for transaction operation.')
@@ -251,6 +231,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * @param {EvmTransaction | string} tx - The transaction, or a signed raw transaction as a hex string.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
    * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
    */
   async quoteSendTransaction (tx) {
     if (typeof tx === 'string') {

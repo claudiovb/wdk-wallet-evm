@@ -20,6 +20,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      * @param {string | Uint8Array} seed - The wallet's BIP-39 seed phrase or seed bytes.
      * @param {string} path - The BIP-44 account path, relative to "m/44'/60'" (e.g. "0'/0/0").
      * @param {EvmWalletConfig} [config] - The configuration object.
+     * @throws {ValueError} If the given seed phrase is invalid.
      */
     constructor(seed: string | Uint8Array, path: string, config?: EvmWalletConfig);
     /**
@@ -109,6 +110,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      * @param {EvmTransaction | string} tx - The transaction, or a signed raw transaction as a hex string.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
      * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
      */
     quoteSendTransaction(tx: EvmTransaction | string): Promise<Omit<TransactionResult, "hash">>;
     /**

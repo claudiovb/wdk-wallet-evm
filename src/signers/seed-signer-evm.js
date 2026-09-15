@@ -15,7 +15,7 @@
 
 import * as bip39 from 'bip39'
 
-import { InvalidSignerError, ValueError } from '@tetherto/wdk-wallet'
+import { ValueError } from '@tetherto/wdk-wallet'
 
 import MemorySafeHDNodeWallet from '../memory-safe/hd-node-wallet.js'
 
@@ -122,13 +122,8 @@ export default class SeedSignerEvm {
    *
    * @param {string} relPath - The path segment to derive, relative to this signer's own path.
    * @returns {Promise<SeedSignerEvm>} The derived child signer.
-   * @throws {InvalidSignerError} If the signer has been disposed.
    */
   async derive (relPath) {
-    if (!this._account.privateKeyBuffer) {
-      throw new InvalidSignerError('Cannot derive: the signer has been disposed.')
-    }
-
     const signer = Object.create(SeedSignerEvm.prototype)
     signer._account = this._account.derivePath(relPath)
     return signer
