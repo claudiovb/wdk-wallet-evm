@@ -207,7 +207,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
     }
 
     if (typeof tx !== 'string') {
-      const has1559 = tx.maxFeePerGas != null || tx.maxPriorityFeePerGas != null
+      const has1559 = tx.maxFeePerGas !== undefined || tx.maxPriorityFeePerGas !== undefined
       const hasLegacy = tx.gasPrice != null
       const hasBlobs = tx.blobs != null || tx.blobVersionedHashes != null || tx.maxFeePerBlobGas != null
       const explicitType = (tx.type != null) ? Number(tx.type) : null
