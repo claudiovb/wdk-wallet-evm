@@ -150,14 +150,14 @@ export default class WalletManagerEvm extends WalletManager {
   }
 
   /**
-   * Builds the account config, injecting the manager's shared provider (spread last so it wins)
-   * so accounts reuse it instead of opening their own client.
+   * Builds the account config, injecting the manager's shared provider so accounts reuse
+   * it instead of opening their own client.
    *
    * @private
    * @returns {EvmWalletConfig} The account configuration.
    */
   _accountConfig () {
-    return this._provider ? { ...this._config, provider: this._provider } : this._config
+    return { ...this._config, provider: this._provider }
   }
 
   /**

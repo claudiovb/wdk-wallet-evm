@@ -120,21 +120,14 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   }
 
   /**
-   * Whether a value is an already-built ethers provider (a real instance or the failover `Proxy`).
-   * Duck-typed on purpose: the failover wrapper is a `Proxy`, so `instanceof` would misclassify it.
+   * Whether a value is an EIP-1193 provider (e.g. a browser wallet).
    *
    * @protected
-   * @param {unknown} value - The value to inspect.
-   * @returns {boolean} True if the value looks like an ethers Provider.
+   * @param {string | Eip1193Provider | Provider} value - The value to inspect.
+   * @returns {boolean} True if the value is an EIP-1193 provider.
    */
-  static _isEthersProvider (value) {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      typeof value.getBlockNumber === 'function' &&
-      typeof value.broadcastTransaction === 'function' &&
-      typeof value.getNetwork === 'function'
-    )
+  static _isEip1193Provider (value) {
+    return typeof value.request === 'function'
   }
 
   /**
@@ -158,11 +151,11 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
         return new JsonRpcProvider(entry, network, providerOpts)
       }
 
-      if (WalletAccountReadOnlyEvm._isEthersProvider(entry)) {
-        return entry
+      if (WalletAccountReadOnlyEvm._isEip1193Provider(entry)) {
+        return new BrowserProvider(entry)
       }
 
-      return new BrowserProvider(entry)
+      return entry
     }
 
     if (Array.isArray(provider)) {
