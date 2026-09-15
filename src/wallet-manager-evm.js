@@ -28,6 +28,7 @@ import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed
 
 /** @typedef {import("@tetherto/wdk-wallet").FeeRates} FeeRates */
 /** @typedef {import("@tetherto/wdk-wallet").NoSuchElementError} NoSuchElementError */
+/** @typedef {import("@tetherto/wdk-wallet").UnsupportedOperationError} UnsupportedOperationError */
 /** @typedef {import("@tetherto/wdk-wallet").ValueError} ValueError */
 
 /** @typedef {import('./wallet-account-evm.js').EvmWalletConfig} EvmWalletConfig */
@@ -145,7 +146,7 @@ export default class WalletManagerEvm extends WalletManager {
    * @param {string} [options.signerName] - The signer name. Omit to use the default signer.
    * @returns {Promise<WalletAccountEvm>} The account.
    * @throws {NoSuchElementError} If a signer name is given but no signer exists with that name.
-   * @throws {InvalidSignerError} If the signer doesn't support account derivation.
+   * @throws {UnsupportedOperationError} If the signer doesn't support account derivation.
    */
 
   /**
@@ -194,7 +195,7 @@ export default class WalletManagerEvm extends WalletManager {
    * @param {string} [options.signerName] - The signer name. Omit to use the default signer.
    * @returns {Promise<WalletAccountEvm>} The account.
    * @throws {NoSuchElementError} If a signer name is given but no signer exists with that name.
-   * @throws {InvalidSignerError} If the signer doesn't support account derivation.
+   * @throws {UnsupportedOperationError} If the signer doesn't support account derivation.
    */
   async getAccountByPath (path, options = {}) {
     const { signerName } = options

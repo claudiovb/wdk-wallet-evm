@@ -63,7 +63,7 @@ export default class WalletManagerEvm extends WalletManager<ISignerEvm> {
      * @param {string} [options.signerName] - The signer name. Omit to use the default signer.
      * @returns {Promise<WalletAccountEvm>} The account.
      * @throws {NoSuchElementError} If a signer name is given but no signer exists with that name.
-     * @throws {InvalidSignerError} If the signer doesn't support account derivation.
+     * @throws {UnsupportedOperationError} If the signer doesn't support account derivation.
      */
     getAccount(index?: number, options?: {
         signerName?: string;
@@ -97,7 +97,7 @@ export default class WalletManagerEvm extends WalletManager<ISignerEvm> {
      * @param {string} [options.signerName] - The signer name. Omit to use the default signer.
      * @returns {Promise<WalletAccountEvm>} The account.
      * @throws {NoSuchElementError} If a signer name is given but no signer exists with that name.
-     * @throws {InvalidSignerError} If the signer doesn't support account derivation.
+     * @throws {UnsupportedOperationError} If the signer doesn't support account derivation.
      */
     getAccountByPath(path: string, options?: {
         signerName?: string;
@@ -120,6 +120,7 @@ export type ISignerEvm = import("./signers/signer-evm.js").ISignerEvm;
 export type Provider = import("ethers").Provider;
 export type FeeRates = import("@tetherto/wdk-wallet").FeeRates;
 export type InvalidSignerError = import("@tetherto/wdk-wallet").InvalidSignerError;
+export type UnsupportedOperationError = import("@tetherto/wdk-wallet").UnsupportedOperationError;
 export type NoSuchElementError = import("@tetherto/wdk-wallet").NoSuchElementError;
 export type ValueError = import("@tetherto/wdk-wallet").ValueError;
 export type EvmWalletConfig = import("./wallet-account-evm.js").EvmWalletConfig;
