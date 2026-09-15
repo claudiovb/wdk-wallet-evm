@@ -1,4 +1,5 @@
-export default class WalletManagerEvm extends WalletManager {
+/** @extends {WalletManager<ISignerEvm>} */
+export default class WalletManagerEvm extends WalletManager<ISignerEvm> {
     /**
      * Multiplier for normal fee rate calculations (in %).
      *
@@ -35,11 +36,11 @@ export default class WalletManagerEvm extends WalletManager {
      * Conversely, the manager never disposes a signer you supplied: {@link dispose} wipes
      * only the default signer it creates internally from a seed.
      *
-     * @param {ISigner} signer - The default signer.
+     * @param {ISignerEvm} signer - The default signer.
      * @param {EvmWalletConfig} [config] - The configuration object.
      * @throws {InvalidSignerError} If the default signer does not support account derivation.
      */
-    constructor(signer: ISigner, config?: EvmWalletConfig);
+    constructor(signer: ISignerEvm, config?: EvmWalletConfig);
     /**
      * If true, disposes the default signer on calls to the 'dispose' method.
      *
@@ -118,7 +119,6 @@ export default class WalletManagerEvm extends WalletManager {
 export type ISignerEvm = import("./signers/signer-evm.js").ISignerEvm;
 export type Provider = import("ethers").Provider;
 export type FeeRates = import("@tetherto/wdk-wallet").FeeRates;
-export type ISigner = import("@tetherto/wdk-wallet").ISigner;
 export type InvalidSignerError = import("@tetherto/wdk-wallet").InvalidSignerError;
 export type NoSuchElementError = import("@tetherto/wdk-wallet").NoSuchElementError;
 export type ValueError = import("@tetherto/wdk-wallet").ValueError;

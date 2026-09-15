@@ -27,12 +27,12 @@ import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed
 /** @typedef {import('ethers').Provider} Provider */
 
 /** @typedef {import("@tetherto/wdk-wallet").FeeRates} FeeRates */
-/** @typedef {import("@tetherto/wdk-wallet").ISigner} ISigner */
 /** @typedef {import("@tetherto/wdk-wallet").NoSuchElementError} NoSuchElementError */
 /** @typedef {import("@tetherto/wdk-wallet").ValueError} ValueError */
 
 /** @typedef {import('./wallet-account-evm.js').EvmWalletConfig} EvmWalletConfig */
 
+/** @extends {WalletManager<ISignerEvm>} */
 export default class WalletManagerEvm extends WalletManager {
   /**
    * Multiplier for normal fee rate calculations (in %).
@@ -74,7 +74,7 @@ export default class WalletManagerEvm extends WalletManager {
    * only the default signer it creates internally from a seed.
    *
    * @overload
-   * @param {ISigner} signer - The default signer.
+   * @param {ISignerEvm} signer - The default signer.
    * @param {EvmWalletConfig} [config] - The configuration object.
    * @throws {InvalidSignerError} If the default signer does not support account derivation.
    */
