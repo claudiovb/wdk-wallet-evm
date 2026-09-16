@@ -34,6 +34,7 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
 /** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
 /** @typedef {import('@tetherto/wdk-wallet').TransactionReceipt} TransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet').WaitForTransactionOptions} WaitForTransactionOptions */
+/** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
 
 /**
  * The EVM-specific fields added to a normalized transaction receipt.
@@ -72,11 +73,16 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
  */
 
 /**
- * @typedef {Object} EvmTransferOptions
- * @property {string} token - The address of the token to transfer.
- * @property {string} recipient - The address of the recipient.
- * @property {number | bigint} amount - The amount of tokens to transfer to the recipient (in base units).
- * @property {AuthorizationLike[]} [authorizationList] - An optional list of ERC-7702 signed authorizations.
+ * The gas and fee fields of an evm transaction that can be set on transfer and approve options.
+ *
+ * @typedef {Pick<EvmTransaction, 'gasLimit' | 'gasPrice' | 'maxFeePerGas' | 'maxPriorityFeePerGas'>} EvmGasOverrides
+ */
+
+/**
+ * The options of a token transfer, extended with the optional gas overrides and ERC-7702 authorizations of an evm
+ * transaction.
+ *
+ * @typedef {TransferOptions & EvmGasOverrides & Pick<EvmTransaction, 'authorizationList'>} EvmTransferOptions
  */
 
 /**
@@ -514,11 +520,24 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   }
 
   /**
+   * Extracts the gas and fee overrides set on transfer or approve options.
+   *
+   * @protected
+   * @param {EvmGasOverrides} options - The options to read the overrides from.
+   * @returns {EvmGasOverrides} The gas and fee fields of the options, undefined where not set.
+   */
+  static _getGasOverrides (options) {
+    const { gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas } = options
+
+    return { gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas }
+  }
+
+  /**
    * Returns an evm transaction to execute the given token transfer.
    *
    * @protected
-   * @param {EvmTransferOptions} options - The transfer's options.
-   * @returns {Promise<EvmTransaction>} The evm transaction.
+   * @param {EvmTransferOptions} options - The transfer's options, including any gas overrides and ERC-7702 authorizations to carry onto the transaction.
+   * @returns {Promise<EvmTransaction>} The ERC-20 transfer call as an evm transaction, with the options' gas overrides and authorizations applied.
    */
   static async _getTransferTransaction (options) {
     const { token, recipient, amount, authorizationList } = options
@@ -531,6 +550,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
       to: token,
       value: 0,
       data: contract.interface.encodeFunctionData('transfer', [recipient, amount]),
+      ...WalletAccountReadOnlyEvm._getGasOverrides(options),
       authorizationList
     }
 
