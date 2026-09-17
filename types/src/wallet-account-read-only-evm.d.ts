@@ -4,7 +4,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      *
      * @protected
      * @param {EvmGasOverrides} options - The options to read the overrides from.
-     * @returns {EvmGasOverrides} The gas and fee fields of the options, undefined where not set.
+     * @returns {EvmGasOverrides} Only the gas and fee fields that are set on the options.
      */
     protected static _getGasOverrides(options: EvmGasOverrides): EvmGasOverrides;
     /**

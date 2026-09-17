@@ -524,12 +524,16 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
    *
    * @protected
    * @param {EvmGasOverrides} options - The options to read the overrides from.
-   * @returns {EvmGasOverrides} The gas and fee fields of the options, undefined where not set.
+   * @returns {EvmGasOverrides} Only the gas and fee fields that are set on the options.
    */
   static _getGasOverrides (options) {
-    const { gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas } = options
+    const overrides = {}
 
-    return { gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas }
+    for (const field of ['gasLimit', 'gasPrice', 'maxFeePerGas', 'maxPriorityFeePerGas']) {
+      if (options[field] !== undefined) overrides[field] = options[field]
+    }
+
+    return overrides
   }
 
   /**
