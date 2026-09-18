@@ -49,7 +49,8 @@ export default class WalletManagerEvm extends WalletManager<ISignerEvm> {
      */
     protected _shouldWipeDefaultSignerOnDisposal: boolean;
     /**
-     * An ethers provider to interact with a node of the blockchain.
+     * An ethers provider to interact with a node of the blockchain. Shared with every account
+     * this manager creates, so two accounts never open two clients for the same endpoint.
      *
      * @protected
      * @type {Provider | undefined}
@@ -102,6 +103,8 @@ export default class WalletManagerEvm extends WalletManager<ISignerEvm> {
     getAccountByPath(path: string, options?: {
         signerName?: string;
     }): Promise<WalletAccountEvm>;
+    /** @private */
+    private _accountConfig;
     /**
      * Returns the current fee rates.
      *

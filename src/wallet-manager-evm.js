@@ -16,10 +16,6 @@
 
 import WalletManager, { InvalidSignerError, ProviderRequiredError } from '@tetherto/wdk-wallet'
 
-import { BrowserProvider, JsonRpcProvider } from 'ethers'
-
-import FailoverProvider from '@tetherto/wdk-failover-provider'
-
 import WalletAccountEvm from './wallet-account-evm.js'
 import SeedSignerEvm, { BIP_44_ETH_DERIVATION_PATH_PREFIX } from './signers/seed-signer-evm.js'
 
@@ -107,34 +103,13 @@ export default class WalletManagerEvm extends WalletManager {
     this._config = config
 
     /**
-     * An ethers provider to interact with a node of the blockchain.
+     * An ethers provider to interact with a node of the blockchain. Shared with every account
+     * this manager creates, so two accounts never open two clients for the same endpoint.
      *
      * @protected
      * @type {Provider | undefined}
      */
-    this._provider = undefined
-
-    const { provider, retries = 3 } = config
-
-    if (Array.isArray(provider)) {
-      if (provider.length > 0) {
-        const failoverProvider = new FailoverProvider({ retries })
-
-        for (const entry of provider) {
-          const option = typeof entry === 'string'
-            ? new JsonRpcProvider(entry)
-            : new BrowserProvider(entry)
-          failoverProvider.addProvider(option)
-        }
-
-        this._provider = failoverProvider.initialize()
-      }
-    } else if (provider) {
-      this._provider =
-        typeof provider === 'string'
-          ? new JsonRpcProvider(provider)
-          : new BrowserProvider(provider)
-    }
+    this._provider = WalletAccountEvm._buildProvider(config)
   }
 
   /**
@@ -178,7 +153,7 @@ export default class WalletManagerEvm extends WalletManager {
         return this._accounts[key]
       }
       const signer = this.getSigner(indexOrSignerName)
-      const account = new WalletAccountEvm(signer, this._config)
+      const account = new WalletAccountEvm(signer, this._accountConfig())
       this._accounts[key] = account
       return account
     }
@@ -205,9 +180,20 @@ export default class WalletManagerEvm extends WalletManager {
     }
     const signer = this.getSigner(signerName)
     const childSigner = await signer.derive(path)
-    const account = new WalletAccountEvm(childSigner, { ...this._config, shouldWipeSignerOnDisposal: true })
+    const account = new WalletAccountEvm(childSigner, { ...this._accountConfig(), shouldWipeSignerOnDisposal: true })
     this._accounts[key] = account
     return account
+  }
+
+  /**
+   * Builds the account config, injecting the manager's shared provider so accounts reuse
+   * it instead of opening their own client.
+   *
+   * @private
+   * @returns {EvmWalletConfig} The account configuration.
+   */
+  _accountConfig () {
+    return { ...this._config, provider: this._provider }
   }
 
   /**
