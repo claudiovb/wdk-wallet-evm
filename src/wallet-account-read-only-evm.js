@@ -263,7 +263,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   /**
    * Quotes the costs of a transfer operation.
    *
-   * @param {EvmTransferOptions} options - The transfer's options.
+   * @param {EvmTransferOptions} options - The transfer's options, including any gas overrides to carry onto the transaction.
    * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
    * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
