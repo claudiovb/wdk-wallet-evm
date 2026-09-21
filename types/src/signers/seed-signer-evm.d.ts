@@ -1,8 +1,9 @@
 /**
  * Signer implementation that derives keys from a BIP-39 seed using an HD path. Every signer
- * holds exactly one HD node (the Ethereum BIP-44 account at index 0 by default) and can derive
- * child signers below its own path. Each signer owns an independent copy of its key, so
- * disposing one never affects its parent, children or siblings.
+ * holds exactly one HD node (the Ethereum BIP-44 coin node "m/44'/60'" by default, ready to
+ * derive accounts below it) and can derive child signers below its own path. Each signer owns
+ * an independent copy of its key, so disposing one never affects its parent, children or
+ * siblings.
  *
  * @implements {ISignerEvm}
  */
@@ -11,7 +12,7 @@ export default class SeedSignerEvm implements ISignerEvm {
      * Create a SeedSignerEvm from a BIP-39 seed.
      *
      * @param {string|Uint8Array} seed - BIP-39 mnemonic or seed bytes.
-     * @param {string} [path] - A BIP-32 path (default: "m/44'/60'/0'/0/0").
+     * @param {string} [path] - A BIP-32 path (default: "m/44'/60'").
      * @throws {ValueError} If the given seed phrase is invalid.
      */
     constructor(seed: string | Uint8Array, path?: string);

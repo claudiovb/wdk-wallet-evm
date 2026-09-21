@@ -119,6 +119,20 @@ describe('WalletAccountEvm', () => {
       })
     })
 
+    test('should default to the "0\'/0/0" account path when no path is given', async () => {
+      const account = new WalletAccountEvm(SEED_PHRASE)
+
+      expect(account.path).toBe(ACCOUNT.path)
+      expect(await account.getAddress()).toBe(ACCOUNT.address)
+    })
+
+    test('should treat a config object in the path position as the configuration', async () => {
+      const account = new WalletAccountEvm(SEED_PHRASE, { transactionMaxFee: 1n })
+
+      expect(account.path).toBe(ACCOUNT.path)
+      expect(await account.getAddress()).toBe(ACCOUNT.address)
+    })
+
     test('should throw if the seed phrase is invalid', () => {
       // eslint-disable-next-line no-new
       expect(() => { new WalletAccountEvm(INVALID_SEED_PHRASE, "0'/0/0") })
@@ -137,6 +151,13 @@ describe('WalletAccountEvm', () => {
     test('should derive the same account as a manually derived signer', async () => {
       const seededAccount = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
       const signerAccount = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE, "m/44'/60'").derive("0'/0/0"))
+
+      expect(await seededAccount.getAddress()).toBe(await signerAccount.getAddress())
+    })
+
+    test('should derive the same account as a default-constructed signer', async () => {
+      const seededAccount = new WalletAccountEvm(SEED_PHRASE)
+      const signerAccount = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
 
       expect(await seededAccount.getAddress()).toBe(await signerAccount.getAddress())
     })

@@ -52,6 +52,10 @@ import PrivateKeySignerEvm from './signers/private-key-signer-evm.js'
  * @property {boolean} [shouldWipeSignerOnDisposal] - If true, wipes the signer given at construction on calls to the 'dispose' method.
  */
 
+// Default BIP-44 account path, relative to BIP_44_ETH_DERIVATION_PATH_PREFIX, used by the
+// seed overload when no path is given.
+const DEFAULT_ACCOUNT_PATH = "0'/0/0"
+
 const USDT_MAINNET_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 
 const DELEGATION_TX_GAS_LIMIT = 100_000
@@ -64,7 +68,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * @overload
    * @param {string | Uint8Array} seed - The wallet's BIP-39 seed phrase or seed bytes.
-   * @param {string} path - The BIP-44 account path, relative to "m/44'/60'" (e.g. "0'/0/0").
+   * @param {string} [path] - The BIP-44 account path, relative to "m/44'/60'" (default: "0'/0/0"). Or the config object if no path is given.
    * @param {EvmWalletConfig} [config] - The configuration object.
    * @throws {ValueError} If the given seed phrase is invalid.
    */
@@ -79,8 +83,12 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
 
   constructor (seedOrSigner, pathOrConfig = {}, config = {}) {
     const isSeed = typeof seedOrSigner === 'string' || seedOrSigner instanceof Uint8Array
+    const hasPath = typeof pathOrConfig === 'string'
     const [signer, configuration] = isSeed
-      ? [new SeedSignerEvm(seedOrSigner, `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${pathOrConfig}`), config]
+      ? [
+          new SeedSignerEvm(seedOrSigner, `${BIP_44_ETH_DERIVATION_PATH_PREFIX}/${hasPath ? pathOrConfig : DEFAULT_ACCOUNT_PATH}`),
+          hasPath ? config : pathOrConfig
+        ]
       : [seedOrSigner, pathOrConfig]
 
     super(signer.address, configuration)

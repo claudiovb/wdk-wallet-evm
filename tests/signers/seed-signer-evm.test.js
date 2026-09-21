@@ -61,18 +61,28 @@ const EXPECTED_TYPED_DATA_SIGNATURE = '0xd5d54d9a7fe501ab5dc1532a443a4f70bc8b6ad
 
 describe('SeedSignerEvm', () => {
   describe('constructor', () => {
-    test('should create a signer with the account at index 0 by default', () => {
+    test('should create a derivable signer at the coin node "m/44\'/60\'" by default', () => {
       const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
 
       expect(signer.isDerivable).toBe(true)
-      expect(signer.address).toBe(EXPECTED_ADDRESS)
-      expect(signer.path).toBe("m/44'/60'/0'/0/0")
+      expect(signer.path).toBe("m/44'/60'")
 
       signer.dispose()
     })
 
+    test('should derive the standard account below the default path', async () => {
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const child = await signer.derive("0'/0/0")
+
+      expect(child.path).toBe("m/44'/60'/0'/0/0")
+      expect(child.address).toBe(EXPECTED_ADDRESS)
+
+      child.dispose()
+      signer.dispose()
+    })
+
     test('should derive the same address from raw seed bytes', () => {
-      const signer = new SeedSignerEvm(VALID_SEED)
+      const signer = new SeedSignerEvm(VALID_SEED, "m/44'/60'/0'/0/0")
 
       expect(signer.address).toBe(EXPECTED_ADDRESS)
 
@@ -114,7 +124,7 @@ describe('SeedSignerEvm', () => {
 
   describe('keyPair', () => {
     test('should expose the expected key pair bytes', () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
 
       expect(Buffer.from(signer.keyPair.privateKey).toString('hex')).toBe(EXPECTED_PRIVATE_KEY)
       expect(Buffer.from(signer.keyPair.publicKey).toString('hex')).toBe(EXPECTED_PUBLIC_KEY)
@@ -148,7 +158,7 @@ describe('SeedSignerEvm', () => {
     })
 
     test('should allow continuing to derive past a leaf, composing further self-relatively', async () => {
-      const root = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const root = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
       const child = await root.derive('0')
 
       expect(child.path).toBe("m/44'/60'/0'/0/0/0")
@@ -205,7 +215,7 @@ describe('SeedSignerEvm', () => {
 
   describe('getAddress', () => {
     test('should return the address', async () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
 
       const address = await signer.getAddress()
       expect(address).toBe(EXPECTED_ADDRESS)
@@ -216,7 +226,7 @@ describe('SeedSignerEvm', () => {
 
   describe('sign', () => {
     test('should return the correct signature', async () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
 
       const signature = await signer.sign(MESSAGE)
       expect(signature).toBe(EXPECTED_SIGNATURE)
@@ -227,7 +237,7 @@ describe('SeedSignerEvm', () => {
 
   describe('signTransaction', () => {
     test('should return the signed transaction as a hex string', async () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
 
       const signedTx = await signer.signTransaction(TRANSACTION)
       expect(signedTx).toBe(EXPECTED_SIGNED_TRANSACTION)
@@ -238,7 +248,7 @@ describe('SeedSignerEvm', () => {
 
   describe('signTypedData', () => {
     test('should return the correct signature', async () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
+      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
 
       const signature = await signer.signTypedData(TYPED_DATA)
       expect(signature).toBe(EXPECTED_TYPED_DATA_SIGNATURE)
