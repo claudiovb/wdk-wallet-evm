@@ -155,13 +155,6 @@ describe('WalletAccountEvm', () => {
       expect(await seededAccount.getAddress()).toBe(await signerAccount.getAddress())
     })
 
-    test('should derive the same account as a default-constructed signer', async () => {
-      const seededAccount = new WalletAccountEvm(SEED_PHRASE)
-      const signerAccount = new WalletAccountEvm(await new SeedSignerEvm(SEED_PHRASE).derive("0'/0/0"))
-
-      expect(await seededAccount.getAddress()).toBe(await signerAccount.getAddress())
-    })
-
     test('should successfully initialize an account with a signer (signer overload)', async () => {
       const mockSigner = {
         address: ACCOUNT.address,

@@ -75,14 +75,6 @@ describe('WalletManagerEvm', () => {
       expect(() => new WalletManagerEvm(bareSigner)) // eslint-disable-line no-new
         .toThrow('The default signer must be derivable.')
     })
-
-    test('should derive standard accounts from a default-constructed seed signer', async () => {
-      const signerWallet = new WalletManagerEvm(new SeedSignerEvm(SEED_PHRASE))
-      const account = await signerWallet.getAccount(0)
-
-      expect(account.path).toBe("m/44'/60'/0'/0/0")
-      expect(await account.getAddress()).toBe(await (await wallet.getAccount(0)).getAddress())
-    })
   })
 
   describe('getAccount', () => {

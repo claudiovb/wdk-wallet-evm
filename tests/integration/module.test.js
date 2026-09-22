@@ -339,9 +339,11 @@ describe('@tetherto/wdk-wallet-evm', () => {
       address: DELEGATE_CONTRACT_ADDRESS
     })
 
+    const address = await account.getAddress()
+
     const { hash, fee } = await account.sendTransaction({
       type: 4,
-      to: account.address,
+      to: address,
       value: 0,
       gasLimit: 100_000,
       authorizationList: [auth]
@@ -349,7 +351,7 @@ describe('@tetherto/wdk-wallet-evm', () => {
 
     const transaction = await provider.getTransaction(hash)
 
-    expect(transaction.to).toBe(account.address)
+    expect(transaction.to).toBe(address)
     expect(transaction.type).toBe(4)
 
     expect(transaction.authorizationList).toEqual([{

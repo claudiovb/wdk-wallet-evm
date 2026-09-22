@@ -57,21 +57,21 @@ const EXPECTED_TYPED_DATA_SIGNATURE = '0xd5d54d9a7fe501ab5dc1532a443a4f70bc8b6ad
 
 describe('PrivateKeySignerEvm', () => {
   describe('constructor', () => {
-    test('should create a signer from a hex string', () => {
+    test('should create a signer from a hex string', async () => {
       const signer = new PrivateKeySignerEvm(VALID_PRIVATE_KEY)
 
       expect(signer.isDerivable).toBe(false)
-      expect(signer.address).toBe(EXPECTED_ADDRESS)
+      expect(await signer.getAddress()).toBe(EXPECTED_ADDRESS)
       expect(signer.path).toBeNull()
 
       signer.dispose()
     })
 
-    test('should create a signer from a Uint8Array', () => {
+    test('should create a signer from a Uint8Array', async () => {
       const keyBytes = new Uint8Array(Buffer.from(VALID_PRIVATE_KEY, 'hex'))
       const signer = new PrivateKeySignerEvm(keyBytes)
 
-      expect(signer.address).toBe(EXPECTED_ADDRESS)
+      expect(await signer.getAddress()).toBe(EXPECTED_ADDRESS)
 
       signer.dispose()
     })
@@ -96,17 +96,6 @@ describe('PrivateKeySignerEvm', () => {
 
       await expect(promise).rejects.toThrow(UnsupportedOperationError)
       await expect(promise).rejects.toThrow("Method 'derive(path)' is not supported.")
-
-      signer.dispose()
-    })
-  })
-
-  describe('getAddress', () => {
-    test('should return the address', async () => {
-      const signer = new PrivateKeySignerEvm(VALID_PRIVATE_KEY)
-
-      const address = await signer.getAddress()
-      expect(address).toBe(EXPECTED_ADDRESS)
 
       signer.dispose()
     })

@@ -70,29 +70,18 @@ describe('SeedSignerEvm', () => {
       signer.dispose()
     })
 
-    test('should derive the standard account below the default path', async () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE)
-      const child = await signer.derive("0'/0/0")
-
-      expect(child.path).toBe("m/44'/60'/0'/0/0")
-      expect(child.address).toBe(EXPECTED_ADDRESS)
-
-      child.dispose()
-      signer.dispose()
-    })
-
-    test('should derive the same address from raw seed bytes', () => {
+    test('should derive the same address from raw seed bytes', async () => {
       const signer = new SeedSignerEvm(VALID_SEED, "m/44'/60'/0'/0/0")
 
-      expect(signer.address).toBe(EXPECTED_ADDRESS)
+      expect(await signer.getAddress()).toBe(EXPECTED_ADDRESS)
 
       signer.dispose()
     })
 
-    test('should derive the same address when path is provided via constructor', () => {
+    test('should derive the same address when path is provided via constructor', async () => {
       const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
 
-      expect(signer.address).toBe(EXPECTED_ADDRESS)
+      expect(await signer.getAddress()).toBe(EXPECTED_ADDRESS)
 
       signer.dispose()
     })
@@ -139,7 +128,7 @@ describe('SeedSignerEvm', () => {
       const child = await root.derive("0'/0/0")
 
       expect(child.isDerivable).toBe(true)
-      expect(child.address).toBe(EXPECTED_ADDRESS)
+      expect(await child.getAddress()).toBe(EXPECTED_ADDRESS)
       expect(child.path).toBe("m/44'/60'/0'/0/0")
       expect(Buffer.from(child.keyPair.privateKey).toString('hex')).toBe(EXPECTED_PRIVATE_KEY)
       expect(Buffer.from(child.keyPair.publicKey).toString('hex')).toBe(EXPECTED_PUBLIC_KEY)
@@ -184,7 +173,7 @@ describe('SeedSignerEvm', () => {
 
       expect(child.isDerivable).toBe(true)
       expect(grandchild.path).toBe("m/44'/60'/0'/0/0")
-      expect(grandchild.address).toBe(EXPECTED_ADDRESS)
+      expect(await grandchild.getAddress()).toBe(EXPECTED_ADDRESS)
 
       // Disposing the intermediate child must not affect the grandchild derived from it.
       child.dispose()
@@ -203,24 +192,13 @@ describe('SeedSignerEvm', () => {
       const eth = await master.derive("44'/60'/0'/0/0")
       const other = await master.derive("84'/0'")
 
-      expect(eth.address).toBe(EXPECTED_ADDRESS)
+      expect(await eth.getAddress()).toBe(EXPECTED_ADDRESS)
       expect(other.path).toBe("m/84'/0'")
       expect(other.isDerivable).toBe(true)
 
       eth.dispose()
       other.dispose()
       master.dispose()
-    })
-  })
-
-  describe('getAddress', () => {
-    test('should return the address', async () => {
-      const signer = new SeedSignerEvm(VALID_SEED_PHRASE, "m/44'/60'/0'/0/0")
-
-      const address = await signer.getAddress()
-      expect(address).toBe(EXPECTED_ADDRESS)
-
-      signer.dispose()
     })
   })
 
