@@ -38,6 +38,7 @@ import PrivateKeySignerEvm from './signers/private-key-signer-evm.js'
 /** @typedef {import('./wallet-account-read-only-evm.js').TypedData} TypedData */
 /** @typedef {import('./wallet-account-read-only-evm.js').EvmTransaction} EvmTransaction */
 /** @typedef {import('./wallet-account-read-only-evm.js').EvmTransferOptions} EvmTransferOptions */
+/** @typedef {import('./wallet-account-read-only-evm.js').EvmGasOverrides} EvmGasOverrides */
 /** @typedef {import('./wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
 
 /**
@@ -45,6 +46,12 @@ import PrivateKeySignerEvm from './signers/private-key-signer-evm.js'
  * @property {string} token - The address of the token to approve.
  * @property {string} spender - The spender's address.
  * @property {number | bigint} amount - The amount of tokens to approve to the spender.
+ */
+
+/**
+ * The options of a token approval, extended with the optional gas overrides of an evm transaction.
+ *
+ * @typedef {ApproveOptions & EvmGasOverrides} EvmApproveOptions
  */
 
 /**
@@ -277,7 +284,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Transfers a token to another address.
    *
-   * @param {EvmTransferOptions} options - The transfer's options.
+   * @param {EvmTransferOptions} options - The transfer's options, including any gas overrides to carry onto the transaction.
    * @returns {Promise<TransferResult>} The transfer's result.
    * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    * @throws {MaximumFeeExceededError} If the transfer's cost exceeds the maximum transfer fee option.
@@ -303,7 +310,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Approves a specific amount of tokens to a spender.
    *
-   * @param {ApproveOptions} options The approve options.
+   * @param {EvmApproveOptions} options - The approve options, including any gas overrides to carry onto the transaction.
    * @returns {Promise<TransactionResult>} The transaction's result.
    * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    * @throws {ValueError} If trying to approve usdts on ethereum with allowance not equal to zero (due to the usdt allowance reset requirement).
@@ -331,7 +338,8 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
     const tx = {
       to: token,
       value: 0,
-      data: contract.interface.encodeFunctionData('approve', [spender, amount])
+      data: contract.interface.encodeFunctionData('approve', [spender, amount]),
+      ...WalletAccountReadOnlyEvm._getGasOverrides(options)
     }
 
     return await this.sendTransaction(tx)

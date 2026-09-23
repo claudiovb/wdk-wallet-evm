@@ -1,193 +1,222 @@
 export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
-    /**
-     * Whether a value is an EIP-1193 provider (e.g. a browser wallet).
-     *
-     * @protected
-     * @param {string | Eip1193Provider | Provider} value - The value to inspect.
-     * @returns {boolean} True if the value is an EIP-1193 provider.
-     */
-    protected static _isEip1193Provider(value: string | Eip1193Provider | Provider): boolean;
-    /**
-     * Builds an ethers provider from the wallet configuration:
-     * - a url string -> a new `JsonRpcProvider`
-     * - an already-built ethers provider (or failover wrapper) -> reused as-is
-     * - anything else (EIP-1193 / browser wallet) -> wrapped in a `BrowserProvider`
-     * - an array of the above -> a `FailoverProvider` across each entry
-     *
-     * @protected
-     * @param {Omit<EvmWalletConfig, 'transferMaxFee' | 'transactionMaxFee'>} [config] - The configuration object.
-     * @returns {Provider | undefined} The provider, or undefined if none is configured.
-     */
-    protected static _buildProvider(config?: Omit<EvmWalletConfig, "transferMaxFee" | "transactionMaxFee">): Provider | undefined;
-    /**
-     * Validates that a transaction does not mix fee fields its type doesn't support.
-     *
-     * @protected
-     * @param {EvmTransaction} tx - The transaction to validate.
-     * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
-     */
-    protected static _validateFeeFields(tx: EvmTransaction): void;
-    /**
-     * Returns an evm transaction to execute the given token transfer.
-     *
-     * @protected
-     * @param {EvmTransferOptions} options - The transfer's options.
-     * @returns {Promise<EvmTransaction>} The evm transaction.
-     */
-    protected static _getTransferTransaction(options: EvmTransferOptions): Promise<EvmTransaction>;
-    /**
-     * Creates a new evm read-only wallet account.
-     *
-     * @param {string} address - The account's address.
-     * @param {Omit<EvmWalletConfig, 'transferMaxFee' | 'transactionMaxFee'>} [config] - The configuration object.
-     */
-    constructor(address: string, config?: Omit<EvmWalletConfig, "transferMaxFee" | "transactionMaxFee">);
-    /**
-     * The read-only wallet account configuration.
-     *
-     * @protected
-     * @type {Omit<EvmWalletConfig, 'transferMaxFee' | 'transactionMaxFee'>}
-     */
-    protected _config: Omit<EvmWalletConfig, "transferMaxFee" | "transactionMaxFee">;
-    /**
-     * An ethers provider to interact with a node of the blockchain.
-     *
-     * @protected
-     * @type {Provider | undefined}
-     */
-    protected _provider: Provider | undefined;
-    /**
-     * The account's address, or undefined if the account's signer doesn't expose its address
-     * synchronously.
-     *
-     * @deprecated Use {@link getAddress} instead. This property will be removed in an upcoming
-     * release: not all signers (e.g. hardware signers) can expose the address synchronously.
-     * @type {string | undefined}
-     */
-    get address(): string | undefined;
-    /**
-     * Returns the account's eth balance.
-     *
-     * @returns {Promise<bigint>} The eth balance (in weis).
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     */
-    getBalance(): Promise<bigint>;
-    /**
-     * Returns the account balance for a specific token.
-     *
-     * @param {string} tokenAddress - The smart contract address of the token.
-     * @returns {Promise<bigint>} The token balance (in base unit).
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     */
-    getTokenBalance(tokenAddress: string): Promise<bigint>;
-    /**
-     * Returns the account balances for multiple tokens.
-     *
-     * @param {string[]} tokenAddresses - The smart contract addresses of the tokens.
-     * @returns {Promise<Record<string, bigint>>} A mapping of token addresses to their balances (in base units).
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     */
-    getTokenBalances(tokenAddresses: string[]): Promise<Record<string, bigint>>;
-    /**
-     * Quotes the costs of a send transaction operation.
-     *
-     * @param {EvmTransaction} tx - The transaction.
-     * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
-     */
-    quoteSendTransaction(tx: EvmTransaction): Promise<Omit<TransactionResult, "hash">>;
-    /**
-     * Quotes the costs of a transfer operation.
-     *
-     * @param {EvmTransferOptions} options - The transfer's options.
-     * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     */
-    quoteTransfer(options: EvmTransferOptions): Promise<Omit<TransferResult, "hash">>;
-    /**
-     * Returns a transaction's receipt.
-     *
-     * @deprecated Use {@link getTransaction} instead, which returns a normalized, finality-based receipt. The raw ethers receipt remains available on its `receipt` property.
-     * @param {string} hash - The transaction's hash.
-     * @returns {Promise<EvmTransactionReceipt | null>} – The receipt, or null if the transaction has not been included in a block yet.
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     */
-    getTransactionReceipt(hash: string): Promise<EvmTransactionReceipt | null>;
-    /**
-     * Returns a normalized, finality-based receipt for a transaction.
-     *
-     * @param {string} hash - The transaction's hash.
-     * @returns {Promise<TransactionReceipt & EvmTransactionDetails>} The normalized receipt.
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     * @throws {ValueError} If the hash is not a valid transaction hash.
-     * @throws {NoSuchElementError} If no transaction has been found for the given hash.
-     */
-    getTransaction(hash: string): Promise<TransactionReceipt & EvmTransactionDetails>;
-    /**
-     * Blocks until a transaction reaches a terminal state (the requested finality target or `dropped`), or times out.
-     *
-     * @param {string} hash - The transaction's hash.
-     * @param {WaitForTransactionOptions} [options] - The wait options.
-     * @returns {Promise<TransactionReceipt & EvmTransactionDetails>} The terminal receipt: the finality target reached (inspect `success` to tell success from revert), or `dropped`.
-     * @throws {TimeoutError} If the target is not reached before the timeout.
-     */
-    waitForTransaction(hash: string, options?: WaitForTransactionOptions): Promise<TransactionReceipt & EvmTransactionDetails>;
-    /**
-     * Returns whether a block is at or below the chain's `finalized` block. Chains that don't support the tag are treated as not finalized.
-     *
-     * @protected
-     * @param {number} blockNumber - The block number to check.
-     * @returns {Promise<boolean>} True if the block is finalized.
-     */
-    protected _isFinalized(blockNumber: number): Promise<boolean>;
-    /**
-     * Returns whether an unmined transaction has been replaced, i.e. its sender's mined nonce has already advanced past the transaction's nonce.
-     *
-     * @protected
-     * @param {EvmTransactionResponse} transaction - The unmined transaction.
-     * @returns {Promise<boolean>} True if the transaction's nonce slot is already taken.
-     */
-    protected _isReplaced(transaction: EvmTransactionResponse): Promise<boolean>;
-    /**
-     * Overrides the base default to allow for slower EVM inclusion and confirmation.
-     *
-     * @type {number}
-     */
-    get defaultWaitTimeout(): number;
-    /**
-     * Returns the current allowance for the given token and spender.
-     * @param {string} token The token's address.
-     * @param {string} spender The spender's address.
-     * @returns {Promise<bigint>} The allowance.
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     */
-    getAllowance(token: string, spender: string): Promise<bigint>;
-    /**
-     * Verifies a message's signature.
-     *
-     * @param {string} message - The original message.
-     * @param {string} signature - The signature to verify.
-     * @returns {Promise<boolean>} True if the signature is valid.
-     */
-    verify(message: string, signature: string): Promise<boolean>;
-    /**
-     * Verifies a typed data signature.
-     *
-     * @param {TypedData} typedData - The typed data to verify.
-     * @param {string} signature - The signature to verify.
-     * @returns {Promise<boolean>} True if the signature is valid.
-     */
-    verifyTypedData(typedData: TypedData, signature: string): Promise<boolean>;
-    /**
-     * Checks if this account has an active ERC-7702 delegation.
-     *
-     * @returns {Promise<DelegationInfo>} The delegation info.
-     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     */
-    getDelegation(): Promise<DelegationInfo>;
-    /** @private */
-    private _estimateGasWithAuthList;
+  /**
+   * Whether a value is an EIP-1193 provider (e.g. a browser wallet).
+   *
+   * @protected
+   * @param {string | Eip1193Provider | Provider} value - The value to inspect.
+   * @returns {boolean} True if the value is an EIP-1193 provider.
+   */
+  protected static _isEip1193Provider(
+    value: string | Eip1193Provider | Provider,
+  ): boolean;
+  /**
+   * Builds an ethers provider from the wallet configuration:
+   * - a url string -> a new `JsonRpcProvider`
+   * - an already-built ethers provider (or failover wrapper) -> reused as-is
+   * - anything else (EIP-1193 / browser wallet) -> wrapped in a `BrowserProvider`
+   * - an array of the above -> a `FailoverProvider` across each entry
+   *
+   * @protected
+   * @param {Omit<EvmWalletConfig, 'transferMaxFee' | 'transactionMaxFee'>} [config] - The configuration object.
+   * @returns {Provider | undefined} The provider, or undefined if none is configured.
+   */
+  protected static _buildProvider(
+    config?: Omit<EvmWalletConfig, "transferMaxFee" | "transactionMaxFee">,
+  ): Provider | undefined;
+  /**
+   * Validates that a transaction does not mix fee fields its type doesn't support.
+   *
+   * @protected
+   * @param {EvmTransaction} tx - The transaction to validate.
+   * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
+   */
+  protected static _validateFeeFields(tx: EvmTransaction): void;
+  /**
+   * Extracts the gas and fee overrides set on transfer or approve options.
+   *
+   * @protected
+   * @param {EvmGasOverrides} options - The options to read the overrides from.
+   * @returns {EvmGasOverrides} Only the gas and fee fields that are set on the options.
+   */
+  protected static _getGasOverrides(options: EvmGasOverrides): EvmGasOverrides;
+  /**
+   * Returns an evm transaction to execute the given token transfer.
+   *
+   * @protected
+   * @param {EvmTransferOptions} options - The transfer's options, including any gas overrides and ERC-7702 authorizations to carry onto the transaction.
+   * @returns {Promise<EvmTransaction>} The ERC-20 transfer call as an evm transaction, with the options' gas overrides and authorizations applied.
+   */
+  protected static _getTransferTransaction(
+    options: EvmTransferOptions,
+  ): Promise<EvmTransaction>;
+  /**
+   * Creates a new evm read-only wallet account.
+   *
+   * @param {string} address - The account's address.
+   * @param {Omit<EvmWalletConfig, 'transferMaxFee' | 'transactionMaxFee'>} [config] - The configuration object.
+   */
+  constructor(
+    address: string,
+    config?: Omit<EvmWalletConfig, "transferMaxFee" | "transactionMaxFee">,
+  );
+  /**
+   * The read-only wallet account configuration.
+   *
+   * @protected
+   * @type {Omit<EvmWalletConfig, 'transferMaxFee' | 'transactionMaxFee'>}
+   */
+  protected _config: Omit<
+    EvmWalletConfig,
+    "transferMaxFee" | "transactionMaxFee"
+  >;
+  /**
+   * An ethers provider to interact with a node of the blockchain.
+   *
+   * @protected
+   * @type {Provider | undefined}
+   */
+  protected _provider: Provider | undefined;
+  /**
+   * The account's address, or undefined if the account's signer doesn't expose its address
+   * synchronously.
+   *
+   * @deprecated Use {@link getAddress} instead. This property will be removed in an upcoming
+   * release: not all signers (e.g. hardware signers) can expose the address synchronously.
+   * @type {string | undefined}
+   */
+  get address(): string | undefined;
+  /**
+   * Returns the account's eth balance.
+   *
+   * @returns {Promise<bigint>} The eth balance (in weis).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   */
+  getBalance(): Promise<bigint>;
+  /**
+   * Returns the account balance for a specific token.
+   *
+   * @param {string} tokenAddress - The smart contract address of the token.
+   * @returns {Promise<bigint>} The token balance (in base unit).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   */
+  getTokenBalance(tokenAddress: string): Promise<bigint>;
+  /**
+   * Returns the account balances for multiple tokens.
+   *
+   * @param {string[]} tokenAddresses - The smart contract addresses of the tokens.
+   * @returns {Promise<Record<string, bigint>>} A mapping of token addresses to their balances (in base units).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   */
+  getTokenBalances(tokenAddresses: string[]): Promise<Record<string, bigint>>;
+  /**
+   * Quotes the costs of a send transaction operation.
+   *
+   * @param {EvmTransaction} tx - The transaction.
+   * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {ValueError} If the transaction mixes fee fields that its type doesn't support, or a type 3 transaction omits `maxFeePerBlobGas`.
+   */
+  quoteSendTransaction(
+    tx: EvmTransaction,
+  ): Promise<Omit<TransactionResult, "hash">>;
+  /**
+   * Quotes the costs of a transfer operation.
+   *
+   * @param {EvmTransferOptions} options - The transfer's options, including any gas overrides to carry onto the transaction.
+   * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   */
+  quoteTransfer(
+    options: EvmTransferOptions,
+  ): Promise<Omit<TransferResult, "hash">>;
+  /**
+   * Returns a transaction's receipt.
+   *
+   * @deprecated Use {@link getTransaction} instead, which returns a normalized, finality-based receipt. The raw ethers receipt remains available on its `receipt` property.
+   * @param {string} hash - The transaction's hash.
+   * @returns {Promise<EvmTransactionReceipt | null>} – The receipt, or null if the transaction has not been included in a block yet.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   */
+  getTransactionReceipt(hash: string): Promise<EvmTransactionReceipt | null>;
+  /**
+   * Returns a normalized, finality-based receipt for a transaction.
+   *
+   * @param {string} hash - The transaction's hash.
+   * @returns {Promise<TransactionReceipt & EvmTransactionDetails>} The normalized receipt.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {ValueError} If the hash is not a valid transaction hash.
+   * @throws {NoSuchElementError} If no transaction has been found for the given hash.
+   */
+  getTransaction(
+    hash: string,
+  ): Promise<TransactionReceipt & EvmTransactionDetails>;
+  /**
+   * Blocks until a transaction reaches a terminal state (the requested finality target or `dropped`), or times out.
+   *
+   * @param {string} hash - The transaction's hash.
+   * @param {WaitForTransactionOptions} [options] - The wait options.
+   * @returns {Promise<TransactionReceipt & EvmTransactionDetails>} The terminal receipt: the finality target reached (inspect `success` to tell success from revert), or `dropped`.
+   * @throws {TimeoutError} If the target is not reached before the timeout.
+   */
+  waitForTransaction(
+    hash: string,
+    options?: WaitForTransactionOptions,
+  ): Promise<TransactionReceipt & EvmTransactionDetails>;
+  /**
+   * Returns whether a block is at or below the chain's `finalized` block. Chains that don't support the tag are treated as not finalized.
+   *
+   * @protected
+   * @param {number} blockNumber - The block number to check.
+   * @returns {Promise<boolean>} True if the block is finalized.
+   */
+  protected _isFinalized(blockNumber: number): Promise<boolean>;
+  /**
+   * Returns whether an unmined transaction has been replaced, i.e. its sender's mined nonce has already advanced past the transaction's nonce.
+   *
+   * @protected
+   * @param {EvmTransactionResponse} transaction - The unmined transaction.
+   * @returns {Promise<boolean>} True if the transaction's nonce slot is already taken.
+   */
+  protected _isReplaced(transaction: EvmTransactionResponse): Promise<boolean>;
+  /**
+   * Overrides the base default to allow for slower EVM inclusion and confirmation.
+   *
+   * @type {number}
+   */
+  get defaultWaitTimeout(): number;
+  /**
+   * Returns the current allowance for the given token and spender.
+   * @param {string} token The token's address.
+   * @param {string} spender The spender's address.
+   * @returns {Promise<bigint>} The allowance.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   */
+  getAllowance(token: string, spender: string): Promise<bigint>;
+  /**
+   * Verifies a message's signature.
+   *
+   * @param {string} message - The original message.
+   * @param {string} signature - The signature to verify.
+   * @returns {Promise<boolean>} True if the signature is valid.
+   */
+  verify(message: string, signature: string): Promise<boolean>;
+  /**
+   * Verifies a typed data signature.
+   *
+   * @param {TypedData} typedData - The typed data to verify.
+   * @param {string} signature - The signature to verify.
+   * @returns {Promise<boolean>} True if the signature is valid.
+   */
+  verifyTypedData(typedData: TypedData, signature: string): Promise<boolean>;
+  /**
+   * Checks if this account has an active ERC-7702 delegation.
+   *
+   * @returns {Promise<DelegationInfo>} The delegation info.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   */
+  getDelegation(): Promise<DelegationInfo>;
+  /** @private */
+  private _estimateGasWithAuthList;
 }
 export type Provider = import("ethers").Provider;
 export type Eip1193Provider = import("ethers").Eip1193Provider;
@@ -201,6 +230,7 @@ export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult
 export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
 export type TransactionReceipt = import("@tetherto/wdk-wallet").TransactionReceipt;
 export type WaitForTransactionOptions = import("@tetherto/wdk-wallet").WaitForTransactionOptions;
+export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
 /**
  * The EVM-specific fields added to a normalized transaction receipt.
  */
@@ -296,24 +326,15 @@ export type EvmTransaction = {
      */
     authorizationList?: AuthorizationLike[];
 };
-export type EvmTransferOptions = {
-    /**
-     * - The address of the token to transfer.
-     */
-    token: string;
-    /**
-     * - The address of the recipient.
-     */
-    recipient: string;
-    /**
-     * - The amount of tokens to transfer to the recipient (in base units).
-     */
-    amount: number | bigint;
-    /**
-     * - An optional list of ERC-7702 signed authorizations.
-     */
-    authorizationList?: AuthorizationLike[];
-};
+/**
+ * The gas and fee fields of an evm transaction that can be set on transfer and approve options.
+ */
+export type EvmGasOverrides = Pick<EvmTransaction, "gasLimit" | "gasPrice" | "maxFeePerGas" | "maxPriorityFeePerGas">;
+/**
+ * The options of a token transfer, extended with the optional gas overrides and ERC-7702 authorizations of an evm
+ * transaction.
+ */
+export type EvmTransferOptions = TransferOptions & EvmGasOverrides & Pick<EvmTransaction, "authorizationList">;
 export type EvmWalletConfig = {
     /**
      * - The url of the rpc provider, an already-built ethers provider (e.g. a `JsonRpcProvider` or a failover wrapper), or an instance of a class that implements eip-1193. It's also possible to provide an array of these instead. In such case, connection errors will cause the wallet to automatically fallback on the next provider in the list. An already-built provider is reused as-is, which lets a manager share a single provider across all the accounts it creates.
