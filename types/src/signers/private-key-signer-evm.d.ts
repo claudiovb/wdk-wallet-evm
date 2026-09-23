@@ -9,7 +9,11 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
     /**
      * Create a signer from a raw private key.
      *
-     * @param {string | Uint8Array} privateKey - The private key's hex string or byte sequence.
+     * The supplied key is copied: the signer keeps its own internal copy alive until
+     * {@link dispose} zeroes it, and never wipes the supplied key, whose disposal
+     * remains the caller's responsibility.
+     *
+     * @param {string | Uint8Array} privateKey - The private key's hex string (with or without 0x) or byte sequence.
      */
     constructor(privateKey: string | Uint8Array);
     /** @private */
@@ -88,7 +92,7 @@ export default class PrivateKeySignerEvm implements ISignerEvm {
      */
     signAuthorization(auth: AuthorizationRequest): Promise<Authorization>;
     /**
-     * Disposes the signer, erasing its secrets from memory.
+     * Disposes the signer, securely erasing its internal copy of the private key from memory.
      */
     dispose(): void;
 }

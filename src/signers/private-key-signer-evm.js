@@ -38,14 +38,16 @@ export default class PrivateKeySignerEvm {
   /**
    * Create a signer from a raw private key.
    *
-   * @param {string | Uint8Array} privateKey - The private key's hex string or byte sequence.
+   * The supplied key is copied: the signer keeps its own internal copy alive until
+   * {@link dispose} zeroes it, and never wipes the supplied key, whose disposal
+   * remains the caller's responsibility.
+   *
+   * @param {string | Uint8Array} privateKey - The private key's hex string (with or without 0x) or byte sequence.
    */
   constructor (privateKey) {
-    if (typeof privateKey === 'string') {
-      const hex = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey
-
-      privateKey = Buffer.from(hex, 'hex')
-    }
+    privateKey = typeof privateKey === 'string'
+      ? Buffer.from(privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey, 'hex')
+      : Buffer.from(privateKey)
 
     /** @private */
     this._signingKey = new MemorySafeSigningKey(privateKey)
@@ -156,7 +158,7 @@ export default class PrivateKeySignerEvm {
   }
 
   /**
-   * Disposes the signer, erasing its secrets from memory.
+   * Disposes the signer, securely erasing its internal copy of the private key from memory.
    */
   dispose () {
     this._signingKey.dispose()
