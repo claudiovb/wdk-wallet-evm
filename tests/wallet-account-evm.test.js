@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, jest, test } from '@jest/globals'
 
 import * as bip39 from 'bip39'
 
-import { MaximumFeeExceededError, ProviderRequiredError, ValueError } from '@tetherto/wdk-wallet'
+import { AssertionError, MaximumFeeExceededError, ProviderRequiredError, ValueError } from '@tetherto/wdk-wallet'
 
 import { WalletAccountEvm, WalletAccountReadOnlyEvm } from '../index.js'
 import SeedSignerEvm from '../src/signers/seed-signer-evm.js'
@@ -913,7 +913,7 @@ describe('WalletAccountEvm', () => {
 
       const promise = account.signAuthorization({ address: DELEGATE_CONTRACT_ADDRESS })
 
-      await expect(promise).rejects.toThrow(ValueError)
+      await expect(promise).rejects.toThrow(AssertionError)
       await expect(promise).rejects.toThrow('The provider reported chain id 0, which would make the authorization valid on every chain.')
     })
 
@@ -964,7 +964,7 @@ describe('WalletAccountEvm', () => {
       const provider = createProvider({ eth_chainId: () => '0x0' })
       const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider })
 
-      await expect(account.delegate(DELEGATE_CONTRACT_ADDRESS)).rejects.toThrow(ValueError)
+      await expect(account.delegate(DELEGATE_CONTRACT_ADDRESS)).rejects.toThrow(AssertionError)
 
       expect(provider.sentRawTransactions).toEqual([])
     })
@@ -995,7 +995,7 @@ describe('WalletAccountEvm', () => {
       const provider = createProvider({ eth_chainId: () => '0x0' })
       const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider })
 
-      await expect(account.revokeDelegation()).rejects.toThrow(ValueError)
+      await expect(account.revokeDelegation()).rejects.toThrow(AssertionError)
 
       expect(provider.sentRawTransactions).toEqual([])
     })
