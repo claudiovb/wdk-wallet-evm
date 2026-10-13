@@ -883,6 +883,52 @@ describe('WalletAccountEvm', () => {
         })
       })
     })
+
+    test('should resolve a null chain id from the provider', async () => {
+      const auth = await account.signAuthorization({
+        address: DELEGATE_CONTRACT_ADDRESS,
+        chainId: null,
+        nonce: 0
+      })
+
+      expect(auth.chainId).toBe(1n)
+      expect(auth.nonce).toBe(0n)
+    })
+
+    test('should throw when the chain id is null and the account has no provider', async () => {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
+
+      const promise = account.signAuthorization({
+        address: DELEGATE_CONTRACT_ADDRESS,
+        chainId: null,
+        nonce: 0
+      })
+
+      await expect(promise).rejects.toThrow(ProviderRequiredError)
+    })
+
+    test('should throw when the chain id is not provided and the provider reports a chain id of 0', async () => {
+      const provider = createProvider({ eth_chainId: () => '0x0' })
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider })
+
+      const promise = account.signAuthorization({ address: DELEGATE_CONTRACT_ADDRESS })
+
+      await expect(promise).rejects.toThrow(ValueError)
+      await expect(promise).rejects.toThrow('The provider reported chain id 0, which would make the authorization valid on every chain.')
+    })
+
+    test('should sign an explicit chain id of 0', async () => {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
+
+      const auth = await account.signAuthorization({
+        address: DELEGATE_CONTRACT_ADDRESS,
+        chainId: 0n,
+        nonce: 0
+      })
+
+      expect(auth.chainId).toBe(0n)
+      expect(auth.nonce).toBe(0n)
+    })
   })
 
   describe('delegate', () => {
@@ -913,6 +959,15 @@ describe('WalletAccountEvm', () => {
       await expect(promise).rejects.toThrow(ProviderRequiredError)
       await expect(promise).rejects.toThrow('The wallet must be connected to a provider to delegate.')
     })
+
+    test('should throw without sending a transaction if the provider reports a chain id of 0', async () => {
+      const provider = createProvider({ eth_chainId: () => '0x0' })
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider })
+
+      await expect(account.delegate(DELEGATE_CONTRACT_ADDRESS)).rejects.toThrow(ValueError)
+
+      expect(provider.sentRawTransactions).toEqual([])
+    })
   })
 
   describe('revokeDelegation', () => {
@@ -934,6 +989,15 @@ describe('WalletAccountEvm', () => {
 
       await expect(promise).rejects.toThrow(ProviderRequiredError)
       await expect(promise).rejects.toThrow('The wallet must be connected to a provider to delegate.')
+    })
+
+    test('should throw without sending a transaction if the provider reports a chain id of 0', async () => {
+      const provider = createProvider({ eth_chainId: () => '0x0' })
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider })
+
+      await expect(account.revokeDelegation()).rejects.toThrow(ValueError)
+
+      expect(provider.sentRawTransactions).toEqual([])
     })
   })
 

@@ -371,20 +371,27 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Signs an ERC-7702 authorization tuple.
    *
-   * The chainId and nonce are populated from the provider when not explicitly provided.
+   * The chainId and nonce are populated from the provider when not explicitly provided (undefined or null).
+   *
+   * A chainId of 0 makes the authorization valid on every chain (see [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)),
+   * so it is only signed when given explicitly, never when reported by the provider.
    *
    * @param {AuthorizationRequest} auth - The authorization request.
    * @returns {Promise<Authorization>} The signed authorization.
    * @throws {ProviderRequiredError} If the chainId or nonce are not provided and the wallet is not connected to a provider.
+   * @throws {ValueError} If the chainId is not provided and the provider reports a chain id of 0.
    */
   async signAuthorization (auth) {
     const populated = { ...auth }
-    if (populated.chainId === undefined || populated.nonce === undefined) {
+    if (populated.chainId == null || populated.nonce == null) {
       if (!this._provider) {
         throw new ProviderRequiredError('The wallet must be connected to a provider to populate the authorization chainId and nonce. Provide them explicitly to sign offline.')
       }
       if (populated.chainId == null) {
         const { chainId } = await this._provider.getNetwork()
+        if (chainId === 0n) {
+          throw new ValueError('The provider reported chain id 0, which would make the authorization valid on every chain.')
+        }
         populated.chainId = chainId
       }
       if (populated.nonce == null) {
@@ -405,6 +412,7 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * @param {string} delegateAddress - The address of the contract to delegate to.
    * @returns {Promise<TransactionResult>} The transaction result.
    * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {ValueError} If the provider reports a chain id of 0.
    */
   async delegate (delegateAddress) {
     if (!this._provider) {
@@ -434,6 +442,8 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    * Revokes any active ERC-7702 delegation by delegating to the zero address.
    *
    * @returns {Promise<TransactionResult>} The transaction result.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {ValueError} If the provider reports a chain id of 0.
    */
   async revokeDelegation () {
     return await this.delegate(ZeroAddress)
