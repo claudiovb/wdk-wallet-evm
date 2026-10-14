@@ -373,10 +373,10 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
    *
    * The chainId and nonce are populated from the provider when not explicitly provided.
    *
-   * A chainId of 0 makes the authorization valid on every chain
-   * (see [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)), so it is only signed when given explicitly, never when
-   * reported by the provider.
+   * A chainId of 0 makes the authorization valid on every chain, so it is only signed when given explicitly, never
+   * when reported by the provider.
    *
+   * @see https://eips.ethereum.org/EIPS/eip-7702
    * @param {AuthorizationRequest} auth - The authorization request.
    * @returns {Promise<Authorization>} The signed authorization.
    * @throws {ProviderRequiredError} If the chainId or nonce are not provided and the wallet is not connected to a provider.
