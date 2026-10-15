@@ -153,9 +153,14 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      *
      * The chainId and nonce are populated from the provider when not explicitly provided.
      *
+     * A chainId of 0 makes the authorization valid on every chain, so it is only signed when given explicitly, never
+     * when reported by the provider.
+     *
+     * @see https://eips.ethereum.org/EIPS/eip-7702
      * @param {AuthorizationRequest} auth - The authorization request.
      * @returns {Promise<Authorization>} The signed authorization.
      * @throws {ProviderRequiredError} If the chainId or nonce are not provided and the wallet is not connected to a provider.
+     * @throws {AssertionError} If the chainId is not provided and the provider reports a chain id of 0.
      */
     signAuthorization(auth: AuthorizationRequest): Promise<Authorization>;
     /**
@@ -168,12 +173,15 @@ export default class WalletAccountEvm extends WalletAccountReadOnlyEvm implement
      * @param {string} delegateAddress - The address of the contract to delegate to.
      * @returns {Promise<TransactionResult>} The transaction result.
      * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {AssertionError} If the provider reports a chain id of 0.
      */
     delegate(delegateAddress: string): Promise<TransactionResult>;
     /**
      * Revokes any active ERC-7702 delegation by delegating to the zero address.
      *
      * @returns {Promise<TransactionResult>} The transaction result.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {AssertionError} If the provider reports a chain id of 0.
      */
     revokeDelegation(): Promise<TransactionResult>;
     /**
