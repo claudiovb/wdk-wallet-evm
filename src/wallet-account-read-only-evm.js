@@ -142,7 +142,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
    * Builds an ethers provider from the wallet configuration:
    * - a url string -> a new `JsonRpcProvider`
    * - an already-built ethers provider (or failover wrapper) -> reused as-is
-   * - anything else (EIP-1193 / browser wallet) -> wrapped in a `BrowserProvider`
+   * - anything else (EIP-1193 / browser wallet) -> wrapped in a `BrowserProvider` pinned to the configured chain
    * - an array of the above -> a `FailoverProvider` across each entry
    *
    * @protected
@@ -160,7 +160,7 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
       }
 
       if (WalletAccountReadOnlyEvm._isEip1193Provider(entry)) {
-        return new BrowserProvider(entry)
+        return new BrowserProvider(entry, network, providerOpts)
       }
 
       return entry

@@ -94,6 +94,20 @@ describe('WalletAccountReadOnlyEvm', () => {
     })
   })
 
+  describe('provider setup', () => {
+    test('should pin an EIP-1193 provider to the configured chain without asking it for the chain id', async () => {
+      const provider = createProvider({
+        eth_chainId: () => { throw new Error('eth_chainId must not be called') }
+      })
+      const account = new WalletAccountReadOnlyEvm(ADDRESS, { provider, chainId: 1 })
+
+      const balance = await account.getBalance()
+
+      expect(balance).toBe(DUMMY_BALANCE)
+      expect(provider.request).not.toHaveBeenCalledWith(expect.objectContaining({ method: 'eth_chainId' }))
+    })
+  })
+
   describe('getTokenBalance', () => {
     test('should return the correct token balance of the account', async () => {
       const balance = await account.getTokenBalance(TOKEN_ADDRESS)
