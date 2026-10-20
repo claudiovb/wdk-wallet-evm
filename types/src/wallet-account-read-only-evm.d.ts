@@ -16,9 +16,10 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
      */
     protected static _isEip1193Provider(value: string | Eip1193Provider | Provider): boolean;
     /**
-     * Builds an ethers provider from the wallet configuration:
+     * Builds an ethers provider from the wallet configuration. When `chainId` is set, the providers built here are
+     * pinned to that chain and never ask the rpc for it:
      * - a url string -> a new `JsonRpcProvider`
-     * - an already-built ethers provider (or failover wrapper) -> reused as-is
+     * - an already-built ethers provider (or failover wrapper) -> reused as-is, with its own network configuration
      * - anything else (EIP-1193 / browser wallet) -> wrapped in a `BrowserProvider`
      * - an array of the above -> a `FailoverProvider` across each entry
      *
@@ -339,7 +340,7 @@ export type EvmWalletConfig = {
      */
     retries?: number;
     /**
-     * - The chain ID of the network. When provided, skips automatic chain ID detection from the provider.
+     * - The chain ID of the network. When provided, skips automatic chain ID detection from the provider, except for an already-built provider passed in `provider`, which is reused with its own network configuration.
      */
     chainId?: number;
     /**

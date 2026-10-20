@@ -868,6 +868,16 @@ describe('WalletAccountEvm', () => {
       expect(auth.nonce).toBe(0n)
     })
 
+    test('should sign the authorization for the configured chain, not the one the eip-1193 provider reports', async () => {
+      const provider = createProvider({ eth_chainId: () => '0x89' })
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", { provider, chainId: 1 })
+
+      const auth = await account.signAuthorization({ address: DELEGATE_CONTRACT_ADDRESS })
+
+      expect(auth.chainId).toBe(1n)
+      expect(auth.nonce).toBe(0n)
+    })
+
     test('should resolve chain id and nonce from the provider and sign', async () => {
       const auth = await account.signAuthorization({
         address: DELEGATE_CONTRACT_ADDRESS
