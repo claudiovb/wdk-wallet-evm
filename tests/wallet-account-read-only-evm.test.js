@@ -71,6 +71,20 @@ function createAccount (overrides = {}) {
 describe('WalletAccountReadOnlyEvm', () => {
   const account = createAccount()
 
+  describe('constructor', () => {
+    test('should pin an EIP-1193 provider to the configured chain without asking it for the chain id', async () => {
+      const provider = createProvider({
+        eth_chainId: () => { throw new Error('eth_chainId must not be called') }
+      })
+      const account = new WalletAccountReadOnlyEvm(ADDRESS, { provider, chainId: 1 })
+
+      const balance = await account.getBalance()
+
+      expect(balance).toBe(DUMMY_BALANCE)
+      expect(provider.request).not.toHaveBeenCalledWith(expect.objectContaining({ method: 'eth_chainId' }))
+    })
+  })
+
   describe('getAddress', () => {
     test('should return the correct address', async () => {
       expect(await account.getAddress()).toBe(ADDRESS)
@@ -91,20 +105,6 @@ describe('WalletAccountReadOnlyEvm', () => {
 
       await expect(promise).rejects.toThrow(ProviderRequiredError)
       await expect(promise).rejects.toThrow('The wallet must be connected to a provider to retrieve balances.')
-    })
-  })
-
-  describe('provider setup', () => {
-    test('should pin an EIP-1193 provider to the configured chain without asking it for the chain id', async () => {
-      const provider = createProvider({
-        eth_chainId: () => { throw new Error('eth_chainId must not be called') }
-      })
-      const account = new WalletAccountReadOnlyEvm(ADDRESS, { provider, chainId: 1 })
-
-      const balance = await account.getBalance()
-
-      expect(balance).toBe(DUMMY_BALANCE)
-      expect(provider.request).not.toHaveBeenCalledWith(expect.objectContaining({ method: 'eth_chainId' }))
     })
   })
 

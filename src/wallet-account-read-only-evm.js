@@ -91,7 +91,7 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
  * @typedef {Object} EvmWalletConfig
  * @property {string | Provider | Eip1193Provider | Array<string | Provider | Eip1193Provider>} [provider] - The url of the rpc provider, an already-built ethers provider (e.g. a `JsonRpcProvider` or a failover wrapper), or an instance of a class that implements eip-1193. It's also possible to provide an array of these instead. In such case, connection errors will cause the wallet to automatically fallback on the next provider in the list. An already-built provider is reused as-is, which lets a manager share a single provider across all the accounts it creates.
  * @property {number} [retries] - If set and if 'provider' is a list of urls or EIP 1193 providers, the number of additional retry attempts after the initial call fails. Total attempts = `1 + retries`. For example, `retries: 3` with 4 providers will try each provider once before throwing. If `retries` exceeds the number of providers, the failover will loop back and retry already-failed providers in round-robin order. Default: 3.
- * @property {number} [chainId] - The chain ID of the network. When provided, skips automatic chain ID detection from the provider.
+ * @property {number} [chainId] - The chain ID of the network. When provided, skips automatic chain ID detection from the provider, except for an already-built provider passed in `provider`, which is reused with its own network configuration.
  * @property {number | bigint} [transferMaxFee] - The maximum fee amount for transfer operations.
  * @property {number | bigint} [transactionMaxFee] - The maximum fee amount for sendTransaction and signTransaction operations.
  */
@@ -139,10 +139,11 @@ export default class WalletAccountReadOnlyEvm extends WalletAccountReadOnly {
   }
 
   /**
-   * Builds an ethers provider from the wallet configuration:
+   * Builds an ethers provider from the wallet configuration. When `chainId` is set, the providers built here are
+   * pinned to that chain and never ask the rpc for it:
    * - a url string -> a new `JsonRpcProvider`
-   * - an already-built ethers provider (or failover wrapper) -> reused as-is
-   * - anything else (EIP-1193 / browser wallet) -> wrapped in a `BrowserProvider` pinned to the configured chain
+   * - an already-built ethers provider (or failover wrapper) -> reused as-is, with its own network configuration
+   * - anything else (EIP-1193 / browser wallet) -> wrapped in a `BrowserProvider`
    * - an array of the above -> a `FailoverProvider` across each entry
    *
    * @protected
